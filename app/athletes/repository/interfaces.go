@@ -1,4 +1,4 @@
-package repository
+package athlete_repository
 
 type AthleteModel interface {
 	GetAtlhete(int) (AthleteModelData, error)
