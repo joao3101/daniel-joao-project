@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	app "github.com/joao3101/daniel-joao-project/app"
 	"github.com/joao3101/daniel-joao-project/token"
 	"github.com/joao3101/daniel-joao-project/util"
 )
@@ -35,13 +34,13 @@ func NewServer(config util.Config) (*Server, error) {
 func (server *Server) setupRouter() {
 	router := gin.Default()
 
-	router.POST("/users", server.createUser)
-	router.POST("/users/login", server.loginUser)
+	/*router.POST("/users", server.createUser)
+	router.POST("/users/login", server.loginUser)*/
 
-	authRoutes := router.Group("/").Use(app.AuthMiddleware(server.tokenMaker))
+	/*authRoutes := router.Group("/").Use(app.AuthMiddleware(server.tokenMaker))
 	authRoutes.POST("/athletes", server.CreateAthletes)
 	authRoutes.GET("/athletes/:id", server.GetAthlete)
-	authRoutes.GET("/athletes", server.ListAthletes)
+	authRoutes.GET("/athletes", server.ListAthletes)*/
 
 	server.router = router
 }
@@ -49,8 +48,4 @@ func (server *Server) setupRouter() {
 // Start runs the HTTP server on a specific address.
 func (server *Server) Start(address string) error {
 	return server.router.Run(address)
-}
-
-func ErrorResponse(err error) gin.H {
-	return gin.H{"error": err.Error()}
 }
