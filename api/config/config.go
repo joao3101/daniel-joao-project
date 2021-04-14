@@ -5,9 +5,6 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
-
-	// Gorm
-	"gorm.io/gorm"
 )
 
 type Config struct {
@@ -18,7 +15,6 @@ type Config struct {
 	WebappURL             string
 	MailInboundDomain     string
 	CoreDB                *sql.DB
-	CoreDBGorm            *gorm.DB
 	NodeDBString          string
 	Logger                *zap.Logger
 	WaitGroup             *sync.WaitGroup
