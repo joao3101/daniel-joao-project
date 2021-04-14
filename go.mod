@@ -9,6 +9,7 @@ require (
 	github.com/labstack/echo v3.3.10+incompatible
 	github.com/labstack/echo/v4 v4.2.1 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
+	github.com/lib/pq v1.3.0
 	github.com/magiconair/properties v1.8.5 // indirect
 	github.com/mitchellh/mapstructure v1.4.1 // indirect
 	github.com/nu7hatch/gouuid v0.0.0-20131221200532-179d4d0c4d8d
@@ -22,6 +23,7 @@ require (
 	github.com/volatiletech/sqlboiler/v4 v4.5.0
 	github.com/volatiletech/strmangle v0.0.1
 	go.uber.org/zap v1.16.0
+	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	golang.org/x/sys v0.0.0-20210414055047-fe65e336abe0 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	golang.org/x/time v0.0.0-20210220033141-f8bda1e9f3ba // indirect
