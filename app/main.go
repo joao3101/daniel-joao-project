@@ -4,8 +4,8 @@ import (
 	_ "log"
 
 	"github.com/joao3101/daniel-joao-project/api/config"
+	athlete_repository "github.com/joao3101/daniel-joao-project/app/athletes/repository"
 	"github.com/joao3101/daniel-joao-project/models"
-	"github.com/joao3101/daniel-joao-project/app/athletes/repository"
 	_ "github.com/labstack/echo"
 	"github.com/spf13/viper"
 )
