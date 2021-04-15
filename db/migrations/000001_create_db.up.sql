@@ -3,8 +3,8 @@ CREATE TABLE "Users" (
   "full_name" varchar NOT NULL,
   "email" varchar NOT NULL,
   "hashed_password" varchar NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Teams" (
@@ -12,40 +12,40 @@ CREATE TABLE "Teams" (
   "name" varchar NOT NULL,
   "user_id" int NOT NULL,
   "league_id" int NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Clubs" (
   "id" SERIAL PRIMARY KEY,
   "name" varchar NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Leagues" (
   "id" SERIAL PRIMARY KEY,
   "name" varchar NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Players" (
   "id" SERIAL PRIMARY KEY,
   "club_id" int,
   "name" varchar NOT NULL,
-  "age" timestamp NOT NULL,
+  "age" int NOT NULL,
   "position" int NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "TeamPlayers" (
   "id" SERIAL PRIMARY KEY,
   "player_id" int NOT NULL,
   "team_id" int NOT NULL,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "TradePlayers" (
@@ -53,8 +53,8 @@ CREATE TABLE "TradePlayers" (
   "team_player_id" int,
   "trade_id" int,
   "current_team" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Trades" (
@@ -62,8 +62,8 @@ CREATE TABLE "Trades" (
   "from_team" int,
   "to_team" int,
   "status" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Waiver" (
@@ -72,18 +72,18 @@ CREATE TABLE "Waiver" (
   "to_team" int,
   "player_id" int,
   "status" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "Round" (
   "id" SERIAL PRIMARY KEY,
   "round_name" varchar,
   "round_number" int,
-  "start_date" timestamp,
-  "end_date" timestamp,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "start_date" int,
+  "end_date" int,
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "TeamMatchups" (
@@ -95,8 +95,8 @@ CREATE TABLE "TeamMatchups" (
   "away_team_score" int,
   "winner" int,
   "status" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "TeamRounds" (
@@ -104,8 +104,8 @@ CREATE TABLE "TeamRounds" (
   "round_id" int,
   "team_id" int,
   "score" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "TeamRoundPlayers" (
@@ -113,8 +113,8 @@ CREATE TABLE "TeamRoundPlayers" (
   "team_round_id" int,
   "team_player_id" int,
   "status" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "PlayerRounds" (
@@ -123,8 +123,8 @@ CREATE TABLE "PlayerRounds" (
   "round_id" int,
   "status" int,
   "score" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 CREATE TABLE "ClubMatchups" (
@@ -132,12 +132,12 @@ CREATE TABLE "ClubMatchups" (
   "round_id" int,
   "home_club" int,
   "away_club" int,
-  "game_time" timestamp,
+  "game_time" int,
   "home_club_score" int,
   "away_club_score" int,
   "status" int,
-  "created_at" timestamp NOT NULL,
-  "deleted_at" timestamp
+  "created_at" int NOT NULL,
+  "deleted_at" int
 );
 
 ALTER TABLE "Teams" ADD FOREIGN KEY ("user_id") REFERENCES "Users" ("id");
