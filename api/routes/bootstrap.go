@@ -1,55 +1,59 @@
 package routes
 
 import (
-	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
-	"sync"
 	"syscall"
 
-	"github.com/gin-gonic/gin"
 	"github.com/joao3101/daniel-joao-project/api/config"
+	"github.com/joao3101/daniel-joao-project/api/routes/athletes"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"golang.org/x/time/rate"
 )
 
 func Bootstrap(config *config.Config) {
-	router := gin.Default()
+	e := echo.New()
 
-	//Public API
-	v1.SetupRoutes(e, config)
+	//e.Use(echoMiddleware.RateLimit(config, rateLimit))
 
-	auth.SetupRoutes(e, config)
-	finishRegistration.SetupRoutes(e, config)
+	e.Debug = true
+	e.HideBanner = true
 
-	// oldSurvey.SetupRoutes(e, config)
-	organizations.SetupRoutes(e, config)
-	profilrouter.SetupRoutes(e, config)
-	support.SetupRoutes(e, config)
-	widget.SetupRoutes(e, config)
-	// thirdparty.SetupRoutes(e, config)
+	// Limiting the number of requests per second
+	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(config.RequestLimitPerSecond))))
 
-	//Changed to clean arch
-	notifications.SetupRoutes(e, config)
-	passwordReset.SetupRoutes(e, config)
-	passwordRecovery.SetupRoutes(e, config)
-	survey.SetupRoutes(e, config)
-	unsubscribrouter.SetupRoutes(e, config)
-	orgSegments.SetupRoutes(e, config)
-	webhooks.SetupRoutes(e, config)
-	livrouter.SetupRoutes(e, config)
-	imagrouter.SetupRoutes(e, config)
+	e.Use(middleware.BodyLimit("50M"))
 
-	loggerOpts := echoMiddlewarrouter.LoggerOpts{
-		IgnoreURIs: []string{
-			"/healthz",
-		},
-	}
-	router.Use(echoMiddlewarrouter.Logger(config.Logger, loggerOpts))
+	e.Use(middleware.Recover())
+
+	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+		Skipper:               middleware.DefaultSkipper,
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "SAMEORIGIN",
+		HSTSMaxAge:            15768000,
+		ContentSecurityPolicy: "default-src 'self' *.track.co *.sendgrid.net *.googleapis.com *.gstatic.com ;  img-src 'self' *.track.co *.sendgrid.net data: ; script-src 'self'   *.sendgrid.net cdn.lr-ingest.io 'unsafe-inline' 'unsafe-eval' *.googleapis.com; style-src 'self' *.googleapis.com 'unsafe-inline';",
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		//HSTSPreloadEnabled:    true,
+	}))
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		Skipper:      middleware.DefaultSkipper,
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
+	}))
+
+	//auth.SetupRoutes(e, config)
+
+	athletes.SetupRoutes(e, config)
 
 	// Start server
 	go func() {
 		fmt.Println("start")
-		err := router.Start(config.Address)
+		err := e.Start(config.Address)
 		fmt.Println(err)
 	}()
 
@@ -57,34 +61,4 @@ func Bootstrap(config *config.Config) {
 	quit := make(chan os.Signal)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
-
-	timeout := 1 * timrouter.Minute
-
-	// Wait all goroutines finishes with timeout of 1 minute
-	if waitTimeout(config.WaitGroup, timeout) {
-		fmt.Println("Error: Background processes timeout")
-	}
-
-	// Timeout of 5 seconds
-	ctx, cancel := context.WithTimeout(context.Background(), 5*timrouter.Second)
-	defer cancel()
-	if err := router.Shutdown(ctx); err != nil {
-		router.Logger.Fatal(err)
-	}
-}
-
-// waitTimeout waits for the waitgroup for the specified max timeout.
-// Returns true if waiting timed out.
-func waitTimeout(wg *sync.WaitGroup, timeout timrouter.Duration) bool {
-	c := make(chan struct{})
-	go func() {
-		defer close(c)
-		wg.Wait()
-	}()
-	select {
-	case <-c:
-		return false // completed normally
-	case <-timrouter.After(timeout):
-		return true // timed out
-	}
 }

@@ -17,6 +17,7 @@ require (
 	github.com/kat-co/vala v0.0.0-20170210184112-42e1d8b61f12
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo v3.3.10+incompatible
+	github.com/labstack/echo/v4 v4.2.2 // indirect
 	github.com/labstack/gommon v0.3.0 // indirect
 	github.com/lib/pq v1.10.0
 	github.com/magiconair/properties v1.8.5 // indirect
