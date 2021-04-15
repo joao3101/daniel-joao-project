@@ -4,9 +4,6 @@ docker_postgres:
 docker_compose:
 	docker-compose up -d
 
-postgres:
-	docker run --name fantasy -p 5431:5432 -e POSTGRES_USER=root -e POSTGRES_PASSWORD=secret -d postgres:12-alpine
-
 mysql:
 	docker run --name mysql8 -p 3306:3306  -e MYSQL_ROOT_PASSWORD=secret -d mysql:8
 
@@ -16,7 +13,7 @@ createdb:
 dropdb:
 	docker exec -it fantasy dropdb fantasy
 
-sqlboiler_psql:
+sqlboiler:
 	sqlboiler psql 
 
 #lembrar de colocar o nome após o comando
@@ -47,4 +44,4 @@ server:
 mock:
 	mockgen -package mockdb -destination db/mock/store.go github.com/techschool/simplebank/db/sqlc Store
 
-.PHONY: docker_postgres docker_compose postgres createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock
+.PHONY: docker_postgres docker_compose sqlboiler createdb dropdb migrateup migratedown migrateup1 migratedown1 sqlc test server mock
