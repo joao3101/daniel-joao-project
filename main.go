@@ -5,8 +5,8 @@ import (
 
 	"github.com/joao3101/daniel-joao-project/api"
 	"github.com/joao3101/daniel-joao-project/api/config"
-	athlete_repository "github.com/joao3101/daniel-joao-project/app/athletes/repository"
 	"github.com/joao3101/daniel-joao-project/models"
+	"github.com/joao3101/daniel-joao-project/sqlboiler"
 	"github.com/joao3101/daniel-joao-project/util"
 	_ "github.com/lib/pq"
 )
@@ -32,7 +32,10 @@ func main() {
 		logger.Panic(err.Error())
 	}
 
-	a := athlete_repository.AthleteModelData{Name: "afjkdlsadh"}
+	a := sqlboiler.Player{
+		Name: util.RandomString(8),
+		Age:  util.RandomInt(18, 33),
+	}
 	model.InsertAtlhete(a)
 
 	err = server.Start(config.ServerAddress)
