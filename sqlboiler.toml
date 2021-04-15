@@ -14,7 +14,7 @@ no-context = true
 [psql]
   dbname  = "fantasy"
   host    = "localhost"
-  port    = 5432
+  port    = 5431
   user    = "root"
   pass    = "secret"
   sslmode = "disable"

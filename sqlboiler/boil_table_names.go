@@ -19,7 +19,6 @@ var TableNames = struct {
 	Trades           string
 	Users            string
 	Waiver           string
-	SchemaMigrations string
 }{
 	ClubMatchups:     "ClubMatchups",
 	Clubs:            "Clubs",
@@ -36,5 +35,4 @@ var TableNames = struct {
 	Trades:           "Trades",
 	Users:            "Users",
 	Waiver:           "Waiver",
-	SchemaMigrations: "schema_migrations",
 }

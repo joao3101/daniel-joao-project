@@ -27,7 +27,6 @@ func TestParent(t *testing.T) {
 	t.Run("Trades", testTrades)
 	t.Run("Users", testUsers)
 	t.Run("Waivers", testWaivers)
-	t.Run("SchemaMigrations", testSchemaMigrations)
 }
 
 func TestDelete(t *testing.T) {
@@ -46,7 +45,6 @@ func TestDelete(t *testing.T) {
 	t.Run("Trades", testTradesDelete)
 	t.Run("Users", testUsersDelete)
 	t.Run("Waivers", testWaiversDelete)
-	t.Run("SchemaMigrations", testSchemaMigrationsDelete)
 }
 
 func TestQueryDeleteAll(t *testing.T) {
@@ -65,7 +63,6 @@ func TestQueryDeleteAll(t *testing.T) {
 	t.Run("Trades", testTradesQueryDeleteAll)
 	t.Run("Users", testUsersQueryDeleteAll)
 	t.Run("Waivers", testWaiversQueryDeleteAll)
-	t.Run("SchemaMigrations", testSchemaMigrationsQueryDeleteAll)
 }
 
 func TestSliceDeleteAll(t *testing.T) {
@@ -84,7 +81,6 @@ func TestSliceDeleteAll(t *testing.T) {
 	t.Run("Trades", testTradesSliceDeleteAll)
 	t.Run("Users", testUsersSliceDeleteAll)
 	t.Run("Waivers", testWaiversSliceDeleteAll)
-	t.Run("SchemaMigrations", testSchemaMigrationsSliceDeleteAll)
 }
 
 func TestExists(t *testing.T) {
@@ -103,7 +99,6 @@ func TestExists(t *testing.T) {
 	t.Run("Trades", testTradesExists)
 	t.Run("Users", testUsersExists)
 	t.Run("Waivers", testWaiversExists)
-	t.Run("SchemaMigrations", testSchemaMigrationsExists)
 }
 
 func TestFind(t *testing.T) {
@@ -122,7 +117,6 @@ func TestFind(t *testing.T) {
 	t.Run("Trades", testTradesFind)
 	t.Run("Users", testUsersFind)
 	t.Run("Waivers", testWaiversFind)
-	t.Run("SchemaMigrations", testSchemaMigrationsFind)
 }
 
 func TestBind(t *testing.T) {
@@ -141,7 +135,6 @@ func TestBind(t *testing.T) {
 	t.Run("Trades", testTradesBind)
 	t.Run("Users", testUsersBind)
 	t.Run("Waivers", testWaiversBind)
-	t.Run("SchemaMigrations", testSchemaMigrationsBind)
 }
 
 func TestOne(t *testing.T) {
@@ -160,7 +153,6 @@ func TestOne(t *testing.T) {
 	t.Run("Trades", testTradesOne)
 	t.Run("Users", testUsersOne)
 	t.Run("Waivers", testWaiversOne)
-	t.Run("SchemaMigrations", testSchemaMigrationsOne)
 }
 
 func TestAll(t *testing.T) {
@@ -179,7 +171,6 @@ func TestAll(t *testing.T) {
 	t.Run("Trades", testTradesAll)
 	t.Run("Users", testUsersAll)
 	t.Run("Waivers", testWaiversAll)
-	t.Run("SchemaMigrations", testSchemaMigrationsAll)
 }
 
 func TestCount(t *testing.T) {
@@ -198,7 +189,6 @@ func TestCount(t *testing.T) {
 	t.Run("Trades", testTradesCount)
 	t.Run("Users", testUsersCount)
 	t.Run("Waivers", testWaiversCount)
-	t.Run("SchemaMigrations", testSchemaMigrationsCount)
 }
 
 func TestHooks(t *testing.T) {
@@ -217,7 +207,6 @@ func TestHooks(t *testing.T) {
 	t.Run("Trades", testTradesHooks)
 	t.Run("Users", testUsersHooks)
 	t.Run("Waivers", testWaiversHooks)
-	t.Run("SchemaMigrations", testSchemaMigrationsHooks)
 }
 
 func TestInsert(t *testing.T) {
@@ -251,8 +240,6 @@ func TestInsert(t *testing.T) {
 	t.Run("Users", testUsersInsertWhitelist)
 	t.Run("Waivers", testWaiversInsert)
 	t.Run("Waivers", testWaiversInsertWhitelist)
-	t.Run("SchemaMigrations", testSchemaMigrationsInsert)
-	t.Run("SchemaMigrations", testSchemaMigrationsInsertWhitelist)
 }
 
 // TestToOne tests cannot be run in parallel
@@ -488,7 +475,6 @@ func TestReload(t *testing.T) {
 	t.Run("Trades", testTradesReload)
 	t.Run("Users", testUsersReload)
 	t.Run("Waivers", testWaiversReload)
-	t.Run("SchemaMigrations", testSchemaMigrationsReload)
 }
 
 func TestReloadAll(t *testing.T) {
@@ -507,7 +493,6 @@ func TestReloadAll(t *testing.T) {
 	t.Run("Trades", testTradesReloadAll)
 	t.Run("Users", testUsersReloadAll)
 	t.Run("Waivers", testWaiversReloadAll)
-	t.Run("SchemaMigrations", testSchemaMigrationsReloadAll)
 }
 
 func TestSelect(t *testing.T) {
@@ -526,7 +511,6 @@ func TestSelect(t *testing.T) {
 	t.Run("Trades", testTradesSelect)
 	t.Run("Users", testUsersSelect)
 	t.Run("Waivers", testWaiversSelect)
-	t.Run("SchemaMigrations", testSchemaMigrationsSelect)
 }
 
 func TestUpdate(t *testing.T) {
@@ -545,7 +529,6 @@ func TestUpdate(t *testing.T) {
 	t.Run("Trades", testTradesUpdate)
 	t.Run("Users", testUsersUpdate)
 	t.Run("Waivers", testWaiversUpdate)
-	t.Run("SchemaMigrations", testSchemaMigrationsUpdate)
 }
 
 func TestSliceUpdateAll(t *testing.T) {
@@ -564,5 +547,4 @@ func TestSliceUpdateAll(t *testing.T) {
 	t.Run("Trades", testTradesSliceUpdateAll)
 	t.Run("Users", testUsersSliceUpdateAll)
 	t.Run("Waivers", testWaiversSliceUpdateAll)
-	t.Run("SchemaMigrations", testSchemaMigrationsSliceUpdateAll)
 }

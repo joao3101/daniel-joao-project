@@ -35,6 +35,4 @@ func TestUpsert(t *testing.T) {
 	t.Run("Users", testUsersUpsert)
 
 	t.Run("Waivers", testWaiversUpsert)
-
-	t.Run("SchemaMigrations", testSchemaMigrationsUpsert)
 }

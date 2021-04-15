@@ -1,10 +1,12 @@
 version: "3.7"
 
 services:
-  core-db:
-    image: postgres:11-alpine
+  db:
+    image: postgres:12-alpine
+    container_name: fantasy
     restart: always
     ports:
-      - 5432:5432
+      - 5431:5432
     environment:
-      POSTGRES_PASSWORD: 123456
+      POSTGRES_USER: "root"
+      POSTGRES_PASSWORD: secret
