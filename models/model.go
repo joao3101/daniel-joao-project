@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	_ "github.com/lib/pq"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 type ModelImp struct {
@@ -15,6 +16,8 @@ func InitModel(dbDriver, dataSourceName string) (*ModelImp, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	boil.DebugMode = true
 
 	return &ModelImp{
 		DB: coreDB,

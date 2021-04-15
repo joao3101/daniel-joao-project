@@ -705,7 +705,7 @@ func testLeaguesSelect(t *testing.T) {
 }
 
 var (
-	leagueDBTypes = map[string]string{`ID`: `int`, `Name`: `varchar`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	leagueDBTypes = map[string]string{`ID`: `integer`, `Name`: `character varying`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_             = bytes.MinRead
 )
 
@@ -824,21 +824,18 @@ func testLeaguesUpsert(t *testing.T) {
 	if len(leagueAllColumns) == len(leaguePrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLLeagueUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := League{}
-	if err = randomize.Struct(seed, &o, leagueDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, leagueDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize League struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert League: %s", err)
 	}
 
@@ -855,7 +852,7 @@ func testLeaguesUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize League struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert League: %s", err)
 	}
 

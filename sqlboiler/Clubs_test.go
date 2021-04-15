@@ -481,83 +481,6 @@ func testClubsInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testClubToManyHomeClubClubMatchups(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Club
-	var b, c ClubMatchup
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, clubDBTypes, true, clubColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Club struct: %s", err)
-	}
-
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = randomize.Struct(seed, &b, clubMatchupDBTypes, false, clubMatchupColumnsWithDefault...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, clubMatchupDBTypes, false, clubMatchupColumnsWithDefault...); err != nil {
-		t.Fatal(err)
-	}
-
-	queries.Assign(&b.HomeClub, a.ID)
-	queries.Assign(&c.HomeClub, a.ID)
-	if err = b.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = c.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := a.HomeClubClubMatchups().All(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bFound, cFound := false, false
-	for _, v := range check {
-		if queries.Equal(v.HomeClub, b.HomeClub) {
-			bFound = true
-		}
-		if queries.Equal(v.HomeClub, c.HomeClub) {
-			cFound = true
-		}
-	}
-
-	if !bFound {
-		t.Error("expected to find b")
-	}
-	if !cFound {
-		t.Error("expected to find c")
-	}
-
-	slice := ClubSlice{&a}
-	if err = a.L.LoadHomeClubClubMatchups(tx, false, (*[]*Club)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if got := len(a.R.HomeClubClubMatchups); got != 2 {
-		t.Error("number of eager loaded records wrong, got:", got)
-	}
-
-	a.R.HomeClubClubMatchups = nil
-	if err = a.L.LoadHomeClubClubMatchups(tx, true, &a, nil); err != nil {
-		t.Fatal(err)
-	}
-	if got := len(a.R.HomeClubClubMatchups); got != 2 {
-		t.Error("number of eager loaded records wrong, got:", got)
-	}
-
-	if t.Failed() {
-		t.Logf("%#v", check)
-	}
-}
-
 func testClubToManyAwayClubClubMatchups(t *testing.T) {
 	var err error
 
@@ -627,6 +550,83 @@ func testClubToManyAwayClubClubMatchups(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := len(a.R.AwayClubClubMatchups); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
+func testClubToManyHomeClubClubMatchups(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Club
+	var b, c ClubMatchup
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, clubDBTypes, true, clubColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Club struct: %s", err)
+	}
+
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, clubMatchupDBTypes, false, clubMatchupColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, clubMatchupDBTypes, false, clubMatchupColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&b.HomeClub, a.ID)
+	queries.Assign(&c.HomeClub, a.ID)
+	if err = b.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.HomeClubClubMatchups().All(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if queries.Equal(v.HomeClub, b.HomeClub) {
+			bFound = true
+		}
+		if queries.Equal(v.HomeClub, c.HomeClub) {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := ClubSlice{&a}
+	if err = a.L.LoadHomeClubClubMatchups(tx, false, (*[]*Club)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.HomeClubClubMatchups); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.HomeClubClubMatchups = nil
+	if err = a.L.LoadHomeClubClubMatchups(tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.HomeClubClubMatchups); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
@@ -709,254 +709,6 @@ func testClubToManyClubPlayers(t *testing.T) {
 
 	if t.Failed() {
 		t.Logf("%#v", check)
-	}
-}
-
-func testClubToManyAddOpHomeClubClubMatchups(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Club
-	var b, c, d, e ClubMatchup
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	foreigners := []*ClubMatchup{&b, &c, &d, &e}
-	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = c.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	foreignersSplitByInsertion := [][]*ClubMatchup{
-		{&b, &c},
-		{&d, &e},
-	}
-
-	for i, x := range foreignersSplitByInsertion {
-		err = a.AddHomeClubClubMatchups(tx, i != 0, x...)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		first := x[0]
-		second := x[1]
-
-		if !queries.Equal(a.ID, first.HomeClub) {
-			t.Error("foreign key was wrong value", a.ID, first.HomeClub)
-		}
-		if !queries.Equal(a.ID, second.HomeClub) {
-			t.Error("foreign key was wrong value", a.ID, second.HomeClub)
-		}
-
-		if first.R.HomeClubClub != &a {
-			t.Error("relationship was not added properly to the foreign slice")
-		}
-		if second.R.HomeClubClub != &a {
-			t.Error("relationship was not added properly to the foreign slice")
-		}
-
-		if a.R.HomeClubClubMatchups[i*2] != first {
-			t.Error("relationship struct slice not set to correct value")
-		}
-		if a.R.HomeClubClubMatchups[i*2+1] != second {
-			t.Error("relationship struct slice not set to correct value")
-		}
-
-		count, err := a.HomeClubClubMatchups().Count(tx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if want := int64((i + 1) * 2); count != want {
-			t.Error("want", want, "got", count)
-		}
-	}
-}
-
-func testClubToManySetOpHomeClubClubMatchups(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Club
-	var b, c, d, e ClubMatchup
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	foreigners := []*ClubMatchup{&b, &c, &d, &e}
-	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err = a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = c.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	err = a.SetHomeClubClubMatchups(tx, false, &b, &c)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	count, err := a.HomeClubClubMatchups().Count(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if count != 2 {
-		t.Error("count was wrong:", count)
-	}
-
-	err = a.SetHomeClubClubMatchups(tx, true, &d, &e)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	count, err = a.HomeClubClubMatchups().Count(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if count != 2 {
-		t.Error("count was wrong:", count)
-	}
-
-	if !queries.IsValuerNil(b.HomeClub) {
-		t.Error("want b's foreign key value to be nil")
-	}
-	if !queries.IsValuerNil(c.HomeClub) {
-		t.Error("want c's foreign key value to be nil")
-	}
-	if !queries.Equal(a.ID, d.HomeClub) {
-		t.Error("foreign key was wrong value", a.ID, d.HomeClub)
-	}
-	if !queries.Equal(a.ID, e.HomeClub) {
-		t.Error("foreign key was wrong value", a.ID, e.HomeClub)
-	}
-
-	if b.R.HomeClubClub != nil {
-		t.Error("relationship was not removed properly from the foreign struct")
-	}
-	if c.R.HomeClubClub != nil {
-		t.Error("relationship was not removed properly from the foreign struct")
-	}
-	if d.R.HomeClubClub != &a {
-		t.Error("relationship was not added properly to the foreign struct")
-	}
-	if e.R.HomeClubClub != &a {
-		t.Error("relationship was not added properly to the foreign struct")
-	}
-
-	if a.R.HomeClubClubMatchups[0] != &d {
-		t.Error("relationship struct slice not set to correct value")
-	}
-	if a.R.HomeClubClubMatchups[1] != &e {
-		t.Error("relationship struct slice not set to correct value")
-	}
-}
-
-func testClubToManyRemoveOpHomeClubClubMatchups(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Club
-	var b, c, d, e ClubMatchup
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	foreigners := []*ClubMatchup{&b, &c, &d, &e}
-	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	err = a.AddHomeClubClubMatchups(tx, true, foreigners...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	count, err := a.HomeClubClubMatchups().Count(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if count != 4 {
-		t.Error("count was wrong:", count)
-	}
-
-	err = a.RemoveHomeClubClubMatchups(tx, foreigners[:2]...)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	count, err = a.HomeClubClubMatchups().Count(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if count != 2 {
-		t.Error("count was wrong:", count)
-	}
-
-	if !queries.IsValuerNil(b.HomeClub) {
-		t.Error("want b's foreign key value to be nil")
-	}
-	if !queries.IsValuerNil(c.HomeClub) {
-		t.Error("want c's foreign key value to be nil")
-	}
-
-	if b.R.HomeClubClub != nil {
-		t.Error("relationship was not removed properly from the foreign struct")
-	}
-	if c.R.HomeClubClub != nil {
-		t.Error("relationship was not removed properly from the foreign struct")
-	}
-	if d.R.HomeClubClub != &a {
-		t.Error("relationship to a should have been preserved")
-	}
-	if e.R.HomeClubClub != &a {
-		t.Error("relationship to a should have been preserved")
-	}
-
-	if len(a.R.HomeClubClubMatchups) != 2 {
-		t.Error("should have preserved two relationships")
-	}
-
-	// Removal doesn't do a stable deletion for performance so we have to flip the order
-	if a.R.HomeClubClubMatchups[1] != &d {
-		t.Error("relationship to d should have been preserved")
-	}
-	if a.R.HomeClubClubMatchups[0] != &e {
-		t.Error("relationship to e should have been preserved")
 	}
 }
 
@@ -1204,6 +956,254 @@ func testClubToManyRemoveOpAwayClubClubMatchups(t *testing.T) {
 		t.Error("relationship to d should have been preserved")
 	}
 	if a.R.AwayClubClubMatchups[0] != &e {
+		t.Error("relationship to e should have been preserved")
+	}
+}
+
+func testClubToManyAddOpHomeClubClubMatchups(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Club
+	var b, c, d, e ClubMatchup
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*ClubMatchup{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*ClubMatchup{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddHomeClubClubMatchups(tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if !queries.Equal(a.ID, first.HomeClub) {
+			t.Error("foreign key was wrong value", a.ID, first.HomeClub)
+		}
+		if !queries.Equal(a.ID, second.HomeClub) {
+			t.Error("foreign key was wrong value", a.ID, second.HomeClub)
+		}
+
+		if first.R.HomeClubClub != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.HomeClubClub != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.HomeClubClubMatchups[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.HomeClubClubMatchups[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.HomeClubClubMatchups().Count(tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
+
+func testClubToManySetOpHomeClubClubMatchups(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Club
+	var b, c, d, e ClubMatchup
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*ClubMatchup{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err = a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.SetHomeClubClubMatchups(tx, false, &b, &c)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.HomeClubClubMatchups().Count(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.SetHomeClubClubMatchups(tx, true, &d, &e)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.HomeClubClubMatchups().Count(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if !queries.IsValuerNil(b.HomeClub) {
+		t.Error("want b's foreign key value to be nil")
+	}
+	if !queries.IsValuerNil(c.HomeClub) {
+		t.Error("want c's foreign key value to be nil")
+	}
+	if !queries.Equal(a.ID, d.HomeClub) {
+		t.Error("foreign key was wrong value", a.ID, d.HomeClub)
+	}
+	if !queries.Equal(a.ID, e.HomeClub) {
+		t.Error("foreign key was wrong value", a.ID, e.HomeClub)
+	}
+
+	if b.R.HomeClubClub != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if c.R.HomeClubClub != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if d.R.HomeClubClub != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+	if e.R.HomeClubClub != &a {
+		t.Error("relationship was not added properly to the foreign struct")
+	}
+
+	if a.R.HomeClubClubMatchups[0] != &d {
+		t.Error("relationship struct slice not set to correct value")
+	}
+	if a.R.HomeClubClubMatchups[1] != &e {
+		t.Error("relationship struct slice not set to correct value")
+	}
+}
+
+func testClubToManyRemoveOpHomeClubClubMatchups(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Club
+	var b, c, d, e ClubMatchup
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, clubDBTypes, false, strmangle.SetComplement(clubPrimaryKeyColumns, clubColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*ClubMatchup{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, clubMatchupDBTypes, false, strmangle.SetComplement(clubMatchupPrimaryKeyColumns, clubMatchupColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	err = a.AddHomeClubClubMatchups(tx, true, foreigners...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err := a.HomeClubClubMatchups().Count(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 4 {
+		t.Error("count was wrong:", count)
+	}
+
+	err = a.RemoveHomeClubClubMatchups(tx, foreigners[:2]...)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	count, err = a.HomeClubClubMatchups().Count(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if count != 2 {
+		t.Error("count was wrong:", count)
+	}
+
+	if !queries.IsValuerNil(b.HomeClub) {
+		t.Error("want b's foreign key value to be nil")
+	}
+	if !queries.IsValuerNil(c.HomeClub) {
+		t.Error("want c's foreign key value to be nil")
+	}
+
+	if b.R.HomeClubClub != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if c.R.HomeClubClub != nil {
+		t.Error("relationship was not removed properly from the foreign struct")
+	}
+	if d.R.HomeClubClub != &a {
+		t.Error("relationship to a should have been preserved")
+	}
+	if e.R.HomeClubClub != &a {
+		t.Error("relationship to a should have been preserved")
+	}
+
+	if len(a.R.HomeClubClubMatchups) != 2 {
+		t.Error("should have preserved two relationships")
+	}
+
+	// Removal doesn't do a stable deletion for performance so we have to flip the order
+	if a.R.HomeClubClubMatchups[1] != &d {
+		t.Error("relationship to d should have been preserved")
+	}
+	if a.R.HomeClubClubMatchups[0] != &e {
 		t.Error("relationship to e should have been preserved")
 	}
 }
@@ -1527,7 +1527,7 @@ func testClubsSelect(t *testing.T) {
 }
 
 var (
-	clubDBTypes = map[string]string{`ID`: `int`, `Name`: `varchar`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	clubDBTypes = map[string]string{`ID`: `integer`, `Name`: `character varying`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_           = bytes.MinRead
 )
 
@@ -1646,21 +1646,18 @@ func testClubsUpsert(t *testing.T) {
 	if len(clubAllColumns) == len(clubPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLClubUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := Club{}
-	if err = randomize.Struct(seed, &o, clubDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, clubDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize Club struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Club: %s", err)
 	}
 
@@ -1677,7 +1674,7 @@ func testClubsUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize Club struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Club: %s", err)
 	}
 

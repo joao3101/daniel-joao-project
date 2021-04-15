@@ -28,7 +28,7 @@ type TeamRoundPlayer struct {
 	TeamPlayerID null.Int  `boil:"team_player_id" json:"team_player_id,omitempty" toml:"team_player_id" yaml:"team_player_id,omitempty"`
 	Status       null.Int  `boil:"status" json:"status,omitempty" toml:"status" yaml:"status,omitempty"`
 	CreatedAt    time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt    time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt    null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *teamRoundPlayerR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L teamRoundPlayerL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -58,29 +58,29 @@ var TeamRoundPlayerWhere = struct {
 	TeamPlayerID whereHelpernull_Int
 	Status       whereHelpernull_Int
 	CreatedAt    whereHelpertime_Time
-	DeletedAt    whereHelpertime_Time
+	DeletedAt    whereHelpernull_Time
 }{
-	ID:           whereHelperint{field: "`TeamRoundPlayers`.`id`"},
-	TeamRoundID:  whereHelpernull_Int{field: "`TeamRoundPlayers`.`team_round_id`"},
-	TeamPlayerID: whereHelpernull_Int{field: "`TeamRoundPlayers`.`team_player_id`"},
-	Status:       whereHelpernull_Int{field: "`TeamRoundPlayers`.`status`"},
-	CreatedAt:    whereHelpertime_Time{field: "`TeamRoundPlayers`.`created_at`"},
-	DeletedAt:    whereHelpertime_Time{field: "`TeamRoundPlayers`.`deleted_at`"},
+	ID:           whereHelperint{field: "\"TeamRoundPlayers\".\"id\""},
+	TeamRoundID:  whereHelpernull_Int{field: "\"TeamRoundPlayers\".\"team_round_id\""},
+	TeamPlayerID: whereHelpernull_Int{field: "\"TeamRoundPlayers\".\"team_player_id\""},
+	Status:       whereHelpernull_Int{field: "\"TeamRoundPlayers\".\"status\""},
+	CreatedAt:    whereHelpertime_Time{field: "\"TeamRoundPlayers\".\"created_at\""},
+	DeletedAt:    whereHelpernull_Time{field: "\"TeamRoundPlayers\".\"deleted_at\""},
 }
 
 // TeamRoundPlayerRels is where relationship names are stored.
 var TeamRoundPlayerRels = struct {
-	TeamRound  string
 	TeamPlayer string
+	TeamRound  string
 }{
-	TeamRound:  "TeamRound",
 	TeamPlayer: "TeamPlayer",
+	TeamRound:  "TeamRound",
 }
 
 // teamRoundPlayerR is where relationships are stored.
 type teamRoundPlayerR struct {
-	TeamRound  *TeamRound  `boil:"TeamRound" json:"TeamRound" toml:"TeamRound" yaml:"TeamRound"`
 	TeamPlayer *TeamPlayer `boil:"TeamPlayer" json:"TeamPlayer" toml:"TeamPlayer" yaml:"TeamPlayer"`
+	TeamRound  *TeamRound  `boil:"TeamRound" json:"TeamRound" toml:"TeamRound" yaml:"TeamRound"`
 }
 
 // NewStruct creates a new relationship struct
@@ -93,8 +93,8 @@ type teamRoundPlayerL struct{}
 
 var (
 	teamRoundPlayerAllColumns            = []string{"id", "team_round_id", "team_player_id", "status", "created_at", "deleted_at"}
-	teamRoundPlayerColumnsWithoutDefault = []string{"team_round_id", "team_player_id", "status"}
-	teamRoundPlayerColumnsWithDefault    = []string{"id", "created_at", "deleted_at"}
+	teamRoundPlayerColumnsWithoutDefault = []string{"team_round_id", "team_player_id", "status", "created_at", "deleted_at"}
+	teamRoundPlayerColumnsWithDefault    = []string{"id"}
 	teamRoundPlayerPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -337,140 +337,32 @@ func (q teamRoundPlayerQuery) Exists(exec boil.Executor) (bool, error) {
 	return count > 0, nil
 }
 
-// TeamRound pointed to by the foreign key.
-func (o *TeamRoundPlayer) TeamRound(mods ...qm.QueryMod) teamRoundQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.TeamRoundID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	query := TeamRounds(queryMods...)
-	queries.SetFrom(query.Query, "`TeamRounds`")
-
-	return query
-}
-
 // TeamPlayer pointed to by the foreign key.
 func (o *TeamRoundPlayer) TeamPlayer(mods ...qm.QueryMod) teamPlayerQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.TeamPlayerID),
+		qm.Where("\"id\" = ?", o.TeamPlayerID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := TeamPlayers(queryMods...)
-	queries.SetFrom(query.Query, "`TeamPlayers`")
+	queries.SetFrom(query.Query, "\"TeamPlayers\"")
 
 	return query
 }
 
-// LoadTeamRound allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (teamRoundPlayerL) LoadTeamRound(e boil.Executor, singular bool, maybeTeamRoundPlayer interface{}, mods queries.Applicator) error {
-	var slice []*TeamRoundPlayer
-	var object *TeamRoundPlayer
-
-	if singular {
-		object = maybeTeamRoundPlayer.(*TeamRoundPlayer)
-	} else {
-		slice = *maybeTeamRoundPlayer.(*[]*TeamRoundPlayer)
+// TeamRound pointed to by the foreign key.
+func (o *TeamRoundPlayer) TeamRound(mods ...qm.QueryMod) teamRoundQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.TeamRoundID),
 	}
 
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &teamRoundPlayerR{}
-		}
-		if !queries.IsNil(object.TeamRoundID) {
-			args = append(args, object.TeamRoundID)
-		}
+	queryMods = append(queryMods, mods...)
 
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &teamRoundPlayerR{}
-			}
+	query := TeamRounds(queryMods...)
+	queries.SetFrom(query.Query, "\"TeamRounds\"")
 
-			for _, a := range args {
-				if queries.Equal(a, obj.TeamRoundID) {
-					continue Outer
-				}
-			}
-
-			if !queries.IsNil(obj.TeamRoundID) {
-				args = append(args, obj.TeamRoundID)
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`TeamRounds`),
-		qm.WhereIn(`TeamRounds.id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.Query(e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load TeamRound")
-	}
-
-	var resultSlice []*TeamRound
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice TeamRound")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for TeamRounds")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for TeamRounds")
-	}
-
-	if len(teamRoundPlayerAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.TeamRound = foreign
-		if foreign.R == nil {
-			foreign.R = &teamRoundR{}
-		}
-		foreign.R.TeamRoundTeamRoundPlayers = append(foreign.R.TeamRoundTeamRoundPlayers, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.TeamRoundID, foreign.ID) {
-				local.R.TeamRound = foreign
-				if foreign.R == nil {
-					foreign.R = &teamRoundR{}
-				}
-				foreign.R.TeamRoundTeamRoundPlayers = append(foreign.R.TeamRoundTeamRoundPlayers, local)
-				break
-			}
-		}
-	}
-
-	return nil
+	return query
 }
 
 // LoadTeamPlayer allows an eager lookup of values, cached into the
@@ -581,82 +473,111 @@ func (teamRoundPlayerL) LoadTeamPlayer(e boil.Executor, singular bool, maybeTeam
 	return nil
 }
 
-// SetTeamRound of the teamRoundPlayer to the related item.
-// Sets o.R.TeamRound to related.
-// Adds o to related.R.TeamRoundTeamRoundPlayers.
-func (o *TeamRoundPlayer) SetTeamRound(exec boil.Executor, insert bool, related *TeamRound) error {
-	var err error
-	if insert {
-		if err = related.Insert(exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
+// LoadTeamRound allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (teamRoundPlayerL) LoadTeamRound(e boil.Executor, singular bool, maybeTeamRoundPlayer interface{}, mods queries.Applicator) error {
+	var slice []*TeamRoundPlayer
+	var object *TeamRoundPlayer
 
-	updateQuery := fmt.Sprintf(
-		"UPDATE `TeamRoundPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"team_round_id"}),
-		strmangle.WhereClause("`", "`", 0, teamRoundPlayerPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, updateQuery)
-		fmt.Fprintln(boil.DebugWriter, values)
-	}
-	if _, err = exec.Exec(updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.TeamRoundID, related.ID)
-	if o.R == nil {
-		o.R = &teamRoundPlayerR{
-			TeamRound: related,
-		}
+	if singular {
+		object = maybeTeamRoundPlayer.(*TeamRoundPlayer)
 	} else {
-		o.R.TeamRound = related
+		slice = *maybeTeamRoundPlayer.(*[]*TeamRoundPlayer)
 	}
 
-	if related.R == nil {
-		related.R = &teamRoundR{
-			TeamRoundTeamRoundPlayers: TeamRoundPlayerSlice{o},
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &teamRoundPlayerR{}
 		}
+		if !queries.IsNil(object.TeamRoundID) {
+			args = append(args, object.TeamRoundID)
+		}
+
 	} else {
-		related.R.TeamRoundTeamRoundPlayers = append(related.R.TeamRoundTeamRoundPlayers, o)
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &teamRoundPlayerR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.TeamRoundID) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.TeamRoundID) {
+				args = append(args, obj.TeamRoundID)
+			}
+
+		}
 	}
 
-	return nil
-}
-
-// RemoveTeamRound relationship.
-// Sets o.R.TeamRound to nil.
-// Removes o from all passed in related items' relationships struct (Optional).
-func (o *TeamRoundPlayer) RemoveTeamRound(exec boil.Executor, related *TeamRound) error {
-	var err error
-
-	queries.SetScanner(&o.TeamRoundID, nil)
-	if _, err = o.Update(exec, boil.Whitelist("team_round_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.TeamRound = nil
-	}
-	if related == nil || related.R == nil {
+	if len(args) == 0 {
 		return nil
 	}
 
-	for i, ri := range related.R.TeamRoundTeamRoundPlayers {
-		if queries.Equal(o.TeamRoundID, ri.TeamRoundID) {
-			continue
-		}
-
-		ln := len(related.R.TeamRoundTeamRoundPlayers)
-		if ln > 1 && i < ln-1 {
-			related.R.TeamRoundTeamRoundPlayers[i] = related.R.TeamRoundTeamRoundPlayers[ln-1]
-		}
-		related.R.TeamRoundTeamRoundPlayers = related.R.TeamRoundTeamRoundPlayers[:ln-1]
-		break
+	query := NewQuery(
+		qm.From(`TeamRounds`),
+		qm.WhereIn(`TeamRounds.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
 	}
+
+	results, err := query.Query(e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load TeamRound")
+	}
+
+	var resultSlice []*TeamRound
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice TeamRound")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for TeamRounds")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for TeamRounds")
+	}
+
+	if len(teamRoundPlayerAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.TeamRound = foreign
+		if foreign.R == nil {
+			foreign.R = &teamRoundR{}
+		}
+		foreign.R.TeamRoundTeamRoundPlayers = append(foreign.R.TeamRoundTeamRoundPlayers, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.TeamRoundID, foreign.ID) {
+				local.R.TeamRound = foreign
+				if foreign.R == nil {
+					foreign.R = &teamRoundR{}
+				}
+				foreign.R.TeamRoundTeamRoundPlayers = append(foreign.R.TeamRoundTeamRoundPlayers, local)
+				break
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -672,9 +593,9 @@ func (o *TeamRoundPlayer) SetTeamPlayer(exec boil.Executor, insert bool, related
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `TeamRoundPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"team_player_id"}),
-		strmangle.WhereClause("`", "`", 0, teamRoundPlayerPrimaryKeyColumns),
+		"UPDATE \"TeamRoundPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"team_player_id"}),
+		strmangle.WhereClause("\"", "\"", 2, teamRoundPlayerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -739,9 +660,88 @@ func (o *TeamRoundPlayer) RemoveTeamPlayer(exec boil.Executor, related *TeamPlay
 	return nil
 }
 
+// SetTeamRound of the teamRoundPlayer to the related item.
+// Sets o.R.TeamRound to related.
+// Adds o to related.R.TeamRoundTeamRoundPlayers.
+func (o *TeamRoundPlayer) SetTeamRound(exec boil.Executor, insert bool, related *TeamRound) error {
+	var err error
+	if insert {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"TeamRoundPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"team_round_id"}),
+		strmangle.WhereClause("\"", "\"", 2, teamRoundPlayerPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
+	}
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.TeamRoundID, related.ID)
+	if o.R == nil {
+		o.R = &teamRoundPlayerR{
+			TeamRound: related,
+		}
+	} else {
+		o.R.TeamRound = related
+	}
+
+	if related.R == nil {
+		related.R = &teamRoundR{
+			TeamRoundTeamRoundPlayers: TeamRoundPlayerSlice{o},
+		}
+	} else {
+		related.R.TeamRoundTeamRoundPlayers = append(related.R.TeamRoundTeamRoundPlayers, o)
+	}
+
+	return nil
+}
+
+// RemoveTeamRound relationship.
+// Sets o.R.TeamRound to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *TeamRoundPlayer) RemoveTeamRound(exec boil.Executor, related *TeamRound) error {
+	var err error
+
+	queries.SetScanner(&o.TeamRoundID, nil)
+	if _, err = o.Update(exec, boil.Whitelist("team_round_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.TeamRound = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.TeamRoundTeamRoundPlayers {
+		if queries.Equal(o.TeamRoundID, ri.TeamRoundID) {
+			continue
+		}
+
+		ln := len(related.R.TeamRoundTeamRoundPlayers)
+		if ln > 1 && i < ln-1 {
+			related.R.TeamRoundTeamRoundPlayers[i] = related.R.TeamRoundTeamRoundPlayers[ln-1]
+		}
+		related.R.TeamRoundTeamRoundPlayers = related.R.TeamRoundTeamRoundPlayers[:ln-1]
+		break
+	}
+	return nil
+}
+
 // TeamRoundPlayers retrieves all the records using an executor.
 func TeamRoundPlayers(mods ...qm.QueryMod) teamRoundPlayerQuery {
-	mods = append(mods, qm.From("`TeamRoundPlayers`"))
+	mods = append(mods, qm.From("\"TeamRoundPlayers\""))
 	return teamRoundPlayerQuery{NewQuery(mods...)}
 }
 
@@ -755,7 +755,7 @@ func FindTeamRoundPlayer(exec boil.Executor, iD int, selectCols ...string) (*Tea
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `TeamRoundPlayers` where `id`=?", sel,
+		"select %s from \"TeamRoundPlayers\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -813,15 +813,15 @@ func (o *TeamRoundPlayer) Insert(exec boil.Executor, columns boil.Columns) error
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `TeamRoundPlayers` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"TeamRoundPlayers\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `TeamRoundPlayers` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"TeamRoundPlayers\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `TeamRoundPlayers` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, teamRoundPlayerPrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -834,43 +834,17 @@ func (o *TeamRoundPlayer) Insert(exec boil.Executor, columns boil.Columns) error
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into TeamRoundPlayers")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == teamRoundPlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TeamRoundPlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		teamRoundPlayerInsertCacheMut.Lock()
 		teamRoundPlayerInsertCache[key] = cache
@@ -906,9 +880,9 @@ func (o *TeamRoundPlayer) Update(exec boil.Executor, columns boil.Columns) (int6
 			return 0, errors.New("sqlboiler: unable to update TeamRoundPlayers, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `TeamRoundPlayers` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, teamRoundPlayerPrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"TeamRoundPlayers\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, teamRoundPlayerPrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(teamRoundPlayerType, teamRoundPlayerMapping, append(wl, teamRoundPlayerPrimaryKeyColumns...))
 		if err != nil {
@@ -986,9 +960,9 @@ func (o TeamRoundPlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, erro
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `TeamRoundPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamRoundPlayerPrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"TeamRoundPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, teamRoundPlayerPrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1006,13 +980,9 @@ func (o TeamRoundPlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, erro
 	return rowsAff, nil
 }
 
-var mySQLTeamRoundPlayerUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no TeamRoundPlayers provided for upsert")
 	}
@@ -1027,14 +997,19 @@ func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateColumns, insertColumn
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(teamRoundPlayerColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLTeamRoundPlayerUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -1046,10 +1021,6 @@ func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateColumns, insertColumn
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -1073,17 +1044,16 @@ func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateColumns, insertColumn
 			teamRoundPlayerPrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert TeamRoundPlayers, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`TeamRoundPlayers`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `TeamRoundPlayers` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(teamRoundPlayerPrimaryKeyColumns))
+			copy(conflict, teamRoundPlayerPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"TeamRoundPlayers\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(teamRoundPlayerType, teamRoundPlayerMapping, insert)
 		if err != nil {
@@ -1108,46 +1078,18 @@ func (o *TeamRoundPlayer) Upsert(exec boil.Executor, updateColumns, insertColumn
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for TeamRoundPlayers")
+		return errors.Wrap(err, "sqlboiler: unable to upsert TeamRoundPlayers")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == teamRoundPlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(teamRoundPlayerType, teamRoundPlayerMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for TeamRoundPlayers")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TeamRoundPlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		teamRoundPlayerUpsertCacheMut.Lock()
 		teamRoundPlayerUpsertCache[key] = cache
@@ -1169,7 +1111,7 @@ func (o *TeamRoundPlayer) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), teamRoundPlayerPrimaryKeyMapping)
-	sql := "DELETE FROM `TeamRoundPlayers` WHERE `id`=?"
+	sql := "DELETE FROM \"TeamRoundPlayers\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1233,8 +1175,8 @@ func (o TeamRoundPlayerSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `TeamRoundPlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamRoundPlayerPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"TeamRoundPlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, teamRoundPlayerPrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1287,8 +1229,8 @@ func (o *TeamRoundPlayerSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `TeamRoundPlayers`.* FROM `TeamRoundPlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamRoundPlayerPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"TeamRoundPlayers\".* FROM \"TeamRoundPlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, teamRoundPlayerPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1305,7 +1247,7 @@ func (o *TeamRoundPlayerSlice) ReloadAll(exec boil.Executor) error {
 // TeamRoundPlayerExists checks if the TeamRoundPlayer row exists.
 func TeamRoundPlayerExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `TeamRoundPlayers` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"TeamRoundPlayers\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)

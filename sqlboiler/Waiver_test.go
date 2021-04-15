@@ -532,57 +532,6 @@ func testWaiverToOneTeamUsingFromTeamTeam(t *testing.T) {
 	}
 }
 
-func testWaiverToOneTeamUsingToTeamTeam(t *testing.T) {
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var local Waiver
-	var foreign Team
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, waiverDBTypes, true, waiverColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Waiver struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, teamDBTypes, false, teamColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Team struct: %s", err)
-	}
-
-	if err := foreign.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	queries.Assign(&local.ToTeam, foreign.ID)
-	if err := local.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.ToTeamTeam().One(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !queries.Equal(check.ID, foreign.ID) {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	slice := WaiverSlice{&local}
-	if err = local.L.LoadToTeamTeam(tx, false, (*[]*Waiver)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.ToTeamTeam == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.ToTeamTeam = nil
-	if err = local.L.LoadToTeamTeam(tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.ToTeamTeam == nil {
-		t.Error("struct should have been eager loaded")
-	}
-}
-
 func testWaiverToOnePlayerUsingPlayer(t *testing.T) {
 
 	tx := MustTx(boil.Begin())
@@ -630,6 +579,57 @@ func testWaiverToOnePlayerUsingPlayer(t *testing.T) {
 		t.Fatal(err)
 	}
 	if local.R.Player == nil {
+		t.Error("struct should have been eager loaded")
+	}
+}
+
+func testWaiverToOneTeamUsingToTeamTeam(t *testing.T) {
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var local Waiver
+	var foreign Team
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &local, waiverDBTypes, true, waiverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Waiver struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &foreign, teamDBTypes, false, teamColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Team struct: %s", err)
+	}
+
+	if err := foreign.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&local.ToTeam, foreign.ID)
+	if err := local.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.ToTeamTeam().One(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
+
+	slice := WaiverSlice{&local}
+	if err = local.L.LoadToTeamTeam(tx, false, (*[]*Waiver)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ToTeamTeam == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.ToTeamTeam = nil
+	if err = local.L.LoadToTeamTeam(tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ToTeamTeam == nil {
 		t.Error("struct should have been eager loaded")
 	}
 }
@@ -741,113 +741,6 @@ func testWaiverToOneRemoveOpTeamUsingFromTeamTeam(t *testing.T) {
 	}
 }
 
-func testWaiverToOneSetOpTeamUsingToTeamTeam(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Waiver
-	var b, c Team
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, waiverDBTypes, false, strmangle.SetComplement(waiverPrimaryKeyColumns, waiverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	for i, x := range []*Team{&b, &c} {
-		err = a.SetToTeamTeam(tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if a.R.ToTeamTeam != x {
-			t.Error("relationship struct not set to correct value")
-		}
-
-		if x.R.ToTeamWaivers[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if !queries.Equal(a.ToTeam, x.ID) {
-			t.Error("foreign key was wrong value", a.ToTeam)
-		}
-
-		zero := reflect.Zero(reflect.TypeOf(a.ToTeam))
-		reflect.Indirect(reflect.ValueOf(&a.ToTeam)).Set(zero)
-
-		if err = a.Reload(tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
-
-		if !queries.Equal(a.ToTeam, x.ID) {
-			t.Error("foreign key was wrong value", a.ToTeam, x.ID)
-		}
-	}
-}
-
-func testWaiverToOneRemoveOpTeamUsingToTeamTeam(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a Waiver
-	var b Team
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, waiverDBTypes, false, strmangle.SetComplement(waiverPrimaryKeyColumns, waiverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.SetToTeamTeam(tx, true, &b); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.RemoveToTeamTeam(tx, &b); err != nil {
-		t.Error("failed to remove relationship")
-	}
-
-	count, err := a.ToTeamTeam().Count(tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 0 {
-		t.Error("want no relationships remaining")
-	}
-
-	if a.R.ToTeamTeam != nil {
-		t.Error("R struct entry should be nil")
-	}
-
-	if !queries.IsValuerNil(a.ToTeam) {
-		t.Error("foreign key value should be nil")
-	}
-
-	if len(b.R.ToTeamWaivers) != 0 {
-		t.Error("failed to remove a from b's relationships")
-	}
-}
-
 func testWaiverToOneSetOpPlayerUsingPlayer(t *testing.T) {
 	var err error
 
@@ -955,6 +848,113 @@ func testWaiverToOneRemoveOpPlayerUsingPlayer(t *testing.T) {
 	}
 }
 
+func testWaiverToOneSetOpTeamUsingToTeamTeam(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Waiver
+	var b, c Team
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, waiverDBTypes, false, strmangle.SetComplement(waiverPrimaryKeyColumns, waiverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*Team{&b, &c} {
+		err = a.SetToTeamTeam(tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.ToTeamTeam != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.ToTeamWaivers[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.ToTeam, x.ID) {
+			t.Error("foreign key was wrong value", a.ToTeam)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.ToTeam))
+		reflect.Indirect(reflect.ValueOf(&a.ToTeam)).Set(zero)
+
+		if err = a.Reload(tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.ToTeam, x.ID) {
+			t.Error("foreign key was wrong value", a.ToTeam, x.ID)
+		}
+	}
+}
+
+func testWaiverToOneRemoveOpTeamUsingToTeamTeam(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a Waiver
+	var b Team
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, waiverDBTypes, false, strmangle.SetComplement(waiverPrimaryKeyColumns, waiverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetToTeamTeam(tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveToTeamTeam(tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.ToTeamTeam().Count(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.ToTeamTeam != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.ToTeam) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.ToTeamWaivers) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
 func testWaiversReload(t *testing.T) {
 	t.Parallel()
 
@@ -1026,7 +1026,7 @@ func testWaiversSelect(t *testing.T) {
 }
 
 var (
-	waiverDBTypes = map[string]string{`ID`: `int`, `FromTeam`: `int`, `ToTeam`: `int`, `PlayerID`: `int`, `Status`: `int`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	waiverDBTypes = map[string]string{`ID`: `integer`, `FromTeam`: `integer`, `ToTeam`: `integer`, `PlayerID`: `integer`, `Status`: `integer`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_             = bytes.MinRead
 )
 
@@ -1145,21 +1145,18 @@ func testWaiversUpsert(t *testing.T) {
 	if len(waiverAllColumns) == len(waiverPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLWaiverUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := Waiver{}
-	if err = randomize.Struct(seed, &o, waiverDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, waiverDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize Waiver struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Waiver: %s", err)
 	}
 
@@ -1176,7 +1173,7 @@ func testWaiversUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize Waiver struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Waiver: %s", err)
 	}
 

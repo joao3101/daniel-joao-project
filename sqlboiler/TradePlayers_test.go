@@ -481,6 +481,57 @@ func testTradePlayersInsertWhitelist(t *testing.T) {
 	}
 }
 
+func testTradePlayerToOneTeamUsingCurrentTeamTeam(t *testing.T) {
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var local TradePlayer
+	var foreign Team
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &local, tradePlayerDBTypes, true, tradePlayerColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize TradePlayer struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &foreign, teamDBTypes, false, teamColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Team struct: %s", err)
+	}
+
+	if err := foreign.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&local.CurrentTeam, foreign.ID)
+	if err := local.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.CurrentTeamTeam().One(tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
+
+	slice := TradePlayerSlice{&local}
+	if err = local.L.LoadCurrentTeamTeam(tx, false, (*[]*TradePlayer)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.CurrentTeamTeam == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.CurrentTeamTeam = nil
+	if err = local.L.LoadCurrentTeamTeam(tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.CurrentTeamTeam == nil {
+		t.Error("struct should have been eager loaded")
+	}
+}
+
 func testTradePlayerToOneTeamPlayerUsingTeamPlayer(t *testing.T) {
 
 	tx := MustTx(boil.Begin())
@@ -583,54 +634,110 @@ func testTradePlayerToOneTradeUsingTrade(t *testing.T) {
 	}
 }
 
-func testTradePlayerToOneTeamUsingCurrentTeamTeam(t *testing.T) {
+func testTradePlayerToOneSetOpTeamUsingCurrentTeamTeam(t *testing.T) {
+	var err error
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
 
-	var local TradePlayer
-	var foreign Team
+	var a TradePlayer
+	var b, c Team
 
 	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, tradePlayerDBTypes, true, tradePlayerColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize TradePlayer struct: %s", err)
+	if err = randomize.Struct(seed, &a, tradePlayerDBTypes, false, strmangle.SetComplement(tradePlayerPrimaryKeyColumns, tradePlayerColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
 	}
-	if err := randomize.Struct(seed, &foreign, teamDBTypes, false, teamColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Team struct: %s", err)
+	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
 	}
-
-	if err := foreign.Insert(tx, boil.Infer()); err != nil {
+	if err = randomize.Struct(seed, &c, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
 
-	queries.Assign(&local.CurrentTeam, foreign.ID)
-	if err := local.Insert(tx, boil.Infer()); err != nil {
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	check, err := local.CurrentTeamTeam().One(tx)
+	for i, x := range []*Team{&b, &c} {
+		err = a.SetCurrentTeamTeam(tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.CurrentTeamTeam != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.CurrentTeamTradePlayers[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.CurrentTeam, x.ID) {
+			t.Error("foreign key was wrong value", a.CurrentTeam)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.CurrentTeam))
+		reflect.Indirect(reflect.ValueOf(&a.CurrentTeam)).Set(zero)
+
+		if err = a.Reload(tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.CurrentTeam, x.ID) {
+			t.Error("foreign key was wrong value", a.CurrentTeam, x.ID)
+		}
+	}
+}
+
+func testTradePlayerToOneRemoveOpTeamUsingCurrentTeamTeam(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a TradePlayer
+	var b Team
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, tradePlayerDBTypes, false, strmangle.SetComplement(tradePlayerPrimaryKeyColumns, tradePlayerColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetCurrentTeamTeam(tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveCurrentTeamTeam(tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.CurrentTeamTeam().Count(tx)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
 	}
 
-	if !queries.Equal(check.ID, foreign.ID) {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	if a.R.CurrentTeamTeam != nil {
+		t.Error("R struct entry should be nil")
 	}
 
-	slice := TradePlayerSlice{&local}
-	if err = local.L.LoadCurrentTeamTeam(tx, false, (*[]*TradePlayer)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.CurrentTeamTeam == nil {
-		t.Error("struct should have been eager loaded")
+	if !queries.IsValuerNil(a.CurrentTeam) {
+		t.Error("foreign key value should be nil")
 	}
 
-	local.R.CurrentTeamTeam = nil
-	if err = local.L.LoadCurrentTeamTeam(tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.CurrentTeamTeam == nil {
-		t.Error("struct should have been eager loaded")
+	if len(b.R.CurrentTeamTradePlayers) != 0 {
+		t.Error("failed to remove a from b's relationships")
 	}
 }
 
@@ -848,113 +955,6 @@ func testTradePlayerToOneRemoveOpTradeUsingTrade(t *testing.T) {
 	}
 }
 
-func testTradePlayerToOneSetOpTeamUsingCurrentTeamTeam(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a TradePlayer
-	var b, c Team
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, tradePlayerDBTypes, false, strmangle.SetComplement(tradePlayerPrimaryKeyColumns, tradePlayerColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	for i, x := range []*Team{&b, &c} {
-		err = a.SetCurrentTeamTeam(tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if a.R.CurrentTeamTeam != x {
-			t.Error("relationship struct not set to correct value")
-		}
-
-		if x.R.CurrentTeamTradePlayers[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if !queries.Equal(a.CurrentTeam, x.ID) {
-			t.Error("foreign key was wrong value", a.CurrentTeam)
-		}
-
-		zero := reflect.Zero(reflect.TypeOf(a.CurrentTeam))
-		reflect.Indirect(reflect.ValueOf(&a.CurrentTeam)).Set(zero)
-
-		if err = a.Reload(tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
-
-		if !queries.Equal(a.CurrentTeam, x.ID) {
-			t.Error("foreign key was wrong value", a.CurrentTeam, x.ID)
-		}
-	}
-}
-
-func testTradePlayerToOneRemoveOpTeamUsingCurrentTeamTeam(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a TradePlayer
-	var b Team
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, tradePlayerDBTypes, false, strmangle.SetComplement(tradePlayerPrimaryKeyColumns, tradePlayerColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, teamDBTypes, false, strmangle.SetComplement(teamPrimaryKeyColumns, teamColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.SetCurrentTeamTeam(tx, true, &b); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.RemoveCurrentTeamTeam(tx, &b); err != nil {
-		t.Error("failed to remove relationship")
-	}
-
-	count, err := a.CurrentTeamTeam().Count(tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 0 {
-		t.Error("want no relationships remaining")
-	}
-
-	if a.R.CurrentTeamTeam != nil {
-		t.Error("R struct entry should be nil")
-	}
-
-	if !queries.IsValuerNil(a.CurrentTeam) {
-		t.Error("foreign key value should be nil")
-	}
-
-	if len(b.R.CurrentTeamTradePlayers) != 0 {
-		t.Error("failed to remove a from b's relationships")
-	}
-}
-
 func testTradePlayersReload(t *testing.T) {
 	t.Parallel()
 
@@ -1026,7 +1026,7 @@ func testTradePlayersSelect(t *testing.T) {
 }
 
 var (
-	tradePlayerDBTypes = map[string]string{`ID`: `int`, `TeamPlayerID`: `int`, `TradeID`: `int`, `CurrentTeam`: `int`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	tradePlayerDBTypes = map[string]string{`ID`: `integer`, `TeamPlayerID`: `integer`, `TradeID`: `integer`, `CurrentTeam`: `integer`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_                  = bytes.MinRead
 )
 
@@ -1145,21 +1145,18 @@ func testTradePlayersUpsert(t *testing.T) {
 	if len(tradePlayerAllColumns) == len(tradePlayerPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLTradePlayerUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := TradePlayer{}
-	if err = randomize.Struct(seed, &o, tradePlayerDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, tradePlayerDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize TradePlayer struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TradePlayer: %s", err)
 	}
 
@@ -1176,7 +1173,7 @@ func testTradePlayersUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize TradePlayer struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TradePlayer: %s", err)
 	}
 

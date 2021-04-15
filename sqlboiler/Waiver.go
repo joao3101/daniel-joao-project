@@ -29,7 +29,7 @@ type Waiver struct {
 	PlayerID  null.Int  `boil:"player_id" json:"player_id,omitempty" toml:"player_id" yaml:"player_id,omitempty"`
 	Status    null.Int  `boil:"status" json:"status,omitempty" toml:"status" yaml:"status,omitempty"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *waiverR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L waiverL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -62,33 +62,33 @@ var WaiverWhere = struct {
 	PlayerID  whereHelpernull_Int
 	Status    whereHelpernull_Int
 	CreatedAt whereHelpertime_Time
-	DeletedAt whereHelpertime_Time
+	DeletedAt whereHelpernull_Time
 }{
-	ID:        whereHelperint{field: "`Waiver`.`id`"},
-	FromTeam:  whereHelpernull_Int{field: "`Waiver`.`from_team`"},
-	ToTeam:    whereHelpernull_Int{field: "`Waiver`.`to_team`"},
-	PlayerID:  whereHelpernull_Int{field: "`Waiver`.`player_id`"},
-	Status:    whereHelpernull_Int{field: "`Waiver`.`status`"},
-	CreatedAt: whereHelpertime_Time{field: "`Waiver`.`created_at`"},
-	DeletedAt: whereHelpertime_Time{field: "`Waiver`.`deleted_at`"},
+	ID:        whereHelperint{field: "\"Waiver\".\"id\""},
+	FromTeam:  whereHelpernull_Int{field: "\"Waiver\".\"from_team\""},
+	ToTeam:    whereHelpernull_Int{field: "\"Waiver\".\"to_team\""},
+	PlayerID:  whereHelpernull_Int{field: "\"Waiver\".\"player_id\""},
+	Status:    whereHelpernull_Int{field: "\"Waiver\".\"status\""},
+	CreatedAt: whereHelpertime_Time{field: "\"Waiver\".\"created_at\""},
+	DeletedAt: whereHelpernull_Time{field: "\"Waiver\".\"deleted_at\""},
 }
 
 // WaiverRels is where relationship names are stored.
 var WaiverRels = struct {
 	FromTeamTeam string
-	ToTeamTeam   string
 	Player       string
+	ToTeamTeam   string
 }{
 	FromTeamTeam: "FromTeamTeam",
-	ToTeamTeam:   "ToTeamTeam",
 	Player:       "Player",
+	ToTeamTeam:   "ToTeamTeam",
 }
 
 // waiverR is where relationships are stored.
 type waiverR struct {
 	FromTeamTeam *Team   `boil:"FromTeamTeam" json:"FromTeamTeam" toml:"FromTeamTeam" yaml:"FromTeamTeam"`
-	ToTeamTeam   *Team   `boil:"ToTeamTeam" json:"ToTeamTeam" toml:"ToTeamTeam" yaml:"ToTeamTeam"`
 	Player       *Player `boil:"Player" json:"Player" toml:"Player" yaml:"Player"`
+	ToTeamTeam   *Team   `boil:"ToTeamTeam" json:"ToTeamTeam" toml:"ToTeamTeam" yaml:"ToTeamTeam"`
 }
 
 // NewStruct creates a new relationship struct
@@ -101,8 +101,8 @@ type waiverL struct{}
 
 var (
 	waiverAllColumns            = []string{"id", "from_team", "to_team", "player_id", "status", "created_at", "deleted_at"}
-	waiverColumnsWithoutDefault = []string{"from_team", "to_team", "player_id", "status"}
-	waiverColumnsWithDefault    = []string{"id", "created_at", "deleted_at"}
+	waiverColumnsWithoutDefault = []string{"from_team", "to_team", "player_id", "status", "created_at", "deleted_at"}
+	waiverColumnsWithDefault    = []string{"id"}
 	waiverPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -348,27 +348,13 @@ func (q waiverQuery) Exists(exec boil.Executor) (bool, error) {
 // FromTeamTeam pointed to by the foreign key.
 func (o *Waiver) FromTeamTeam(mods ...qm.QueryMod) teamQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.FromTeam),
+		qm.Where("\"id\" = ?", o.FromTeam),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Teams(queryMods...)
-	queries.SetFrom(query.Query, "`Teams`")
-
-	return query
-}
-
-// ToTeamTeam pointed to by the foreign key.
-func (o *Waiver) ToTeamTeam(mods ...qm.QueryMod) teamQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.ToTeam),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	query := Teams(queryMods...)
-	queries.SetFrom(query.Query, "`Teams`")
+	queries.SetFrom(query.Query, "\"Teams\"")
 
 	return query
 }
@@ -376,13 +362,27 @@ func (o *Waiver) ToTeamTeam(mods ...qm.QueryMod) teamQuery {
 // Player pointed to by the foreign key.
 func (o *Waiver) Player(mods ...qm.QueryMod) playerQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.PlayerID),
+		qm.Where("\"id\" = ?", o.PlayerID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Players(queryMods...)
-	queries.SetFrom(query.Query, "`Players`")
+	queries.SetFrom(query.Query, "\"Players\"")
+
+	return query
+}
+
+// ToTeamTeam pointed to by the foreign key.
+func (o *Waiver) ToTeamTeam(mods ...qm.QueryMod) teamQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ToTeam),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	query := Teams(queryMods...)
+	queries.SetFrom(query.Query, "\"Teams\"")
 
 	return query
 }
@@ -487,114 +487,6 @@ func (waiverL) LoadFromTeamTeam(e boil.Executor, singular bool, maybeWaiver inte
 					foreign.R = &teamR{}
 				}
 				foreign.R.FromTeamWaivers = append(foreign.R.FromTeamWaivers, local)
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadToTeamTeam allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (waiverL) LoadToTeamTeam(e boil.Executor, singular bool, maybeWaiver interface{}, mods queries.Applicator) error {
-	var slice []*Waiver
-	var object *Waiver
-
-	if singular {
-		object = maybeWaiver.(*Waiver)
-	} else {
-		slice = *maybeWaiver.(*[]*Waiver)
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &waiverR{}
-		}
-		if !queries.IsNil(object.ToTeam) {
-			args = append(args, object.ToTeam)
-		}
-
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &waiverR{}
-			}
-
-			for _, a := range args {
-				if queries.Equal(a, obj.ToTeam) {
-					continue Outer
-				}
-			}
-
-			if !queries.IsNil(obj.ToTeam) {
-				args = append(args, obj.ToTeam)
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`Teams`),
-		qm.WhereIn(`Teams.id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.Query(e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load Team")
-	}
-
-	var resultSlice []*Team
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Team")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for Teams")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for Teams")
-	}
-
-	if len(waiverAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.ToTeamTeam = foreign
-		if foreign.R == nil {
-			foreign.R = &teamR{}
-		}
-		foreign.R.ToTeamWaivers = append(foreign.R.ToTeamWaivers, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.ToTeam, foreign.ID) {
-				local.R.ToTeamTeam = foreign
-				if foreign.R == nil {
-					foreign.R = &teamR{}
-				}
-				foreign.R.ToTeamWaivers = append(foreign.R.ToTeamWaivers, local)
 				break
 			}
 		}
@@ -711,6 +603,114 @@ func (waiverL) LoadPlayer(e boil.Executor, singular bool, maybeWaiver interface{
 	return nil
 }
 
+// LoadToTeamTeam allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (waiverL) LoadToTeamTeam(e boil.Executor, singular bool, maybeWaiver interface{}, mods queries.Applicator) error {
+	var slice []*Waiver
+	var object *Waiver
+
+	if singular {
+		object = maybeWaiver.(*Waiver)
+	} else {
+		slice = *maybeWaiver.(*[]*Waiver)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &waiverR{}
+		}
+		if !queries.IsNil(object.ToTeam) {
+			args = append(args, object.ToTeam)
+		}
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &waiverR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.ToTeam) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.ToTeam) {
+				args = append(args, obj.ToTeam)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`Teams`),
+		qm.WhereIn(`Teams.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.Query(e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Team")
+	}
+
+	var resultSlice []*Team
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Team")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for Teams")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for Teams")
+	}
+
+	if len(waiverAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.ToTeamTeam = foreign
+		if foreign.R == nil {
+			foreign.R = &teamR{}
+		}
+		foreign.R.ToTeamWaivers = append(foreign.R.ToTeamWaivers, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.ToTeam, foreign.ID) {
+				local.R.ToTeamTeam = foreign
+				if foreign.R == nil {
+					foreign.R = &teamR{}
+				}
+				foreign.R.ToTeamWaivers = append(foreign.R.ToTeamWaivers, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetFromTeamTeam of the waiver to the related item.
 // Sets o.R.FromTeamTeam to related.
 // Adds o to related.R.FromTeamWaivers.
@@ -723,9 +723,9 @@ func (o *Waiver) SetFromTeamTeam(exec boil.Executor, insert bool, related *Team)
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `Waiver` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"from_team"}),
-		strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns),
+		"UPDATE \"Waiver\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"from_team"}),
+		strmangle.WhereClause("\"", "\"", 2, waiverPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -790,85 +790,6 @@ func (o *Waiver) RemoveFromTeamTeam(exec boil.Executor, related *Team) error {
 	return nil
 }
 
-// SetToTeamTeam of the waiver to the related item.
-// Sets o.R.ToTeamTeam to related.
-// Adds o to related.R.ToTeamWaivers.
-func (o *Waiver) SetToTeamTeam(exec boil.Executor, insert bool, related *Team) error {
-	var err error
-	if insert {
-		if err = related.Insert(exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE `Waiver` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"to_team"}),
-		strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, updateQuery)
-		fmt.Fprintln(boil.DebugWriter, values)
-	}
-	if _, err = exec.Exec(updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.ToTeam, related.ID)
-	if o.R == nil {
-		o.R = &waiverR{
-			ToTeamTeam: related,
-		}
-	} else {
-		o.R.ToTeamTeam = related
-	}
-
-	if related.R == nil {
-		related.R = &teamR{
-			ToTeamWaivers: WaiverSlice{o},
-		}
-	} else {
-		related.R.ToTeamWaivers = append(related.R.ToTeamWaivers, o)
-	}
-
-	return nil
-}
-
-// RemoveToTeamTeam relationship.
-// Sets o.R.ToTeamTeam to nil.
-// Removes o from all passed in related items' relationships struct (Optional).
-func (o *Waiver) RemoveToTeamTeam(exec boil.Executor, related *Team) error {
-	var err error
-
-	queries.SetScanner(&o.ToTeam, nil)
-	if _, err = o.Update(exec, boil.Whitelist("to_team")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.ToTeamTeam = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.ToTeamWaivers {
-		if queries.Equal(o.ToTeam, ri.ToTeam) {
-			continue
-		}
-
-		ln := len(related.R.ToTeamWaivers)
-		if ln > 1 && i < ln-1 {
-			related.R.ToTeamWaivers[i] = related.R.ToTeamWaivers[ln-1]
-		}
-		related.R.ToTeamWaivers = related.R.ToTeamWaivers[:ln-1]
-		break
-	}
-	return nil
-}
-
 // SetPlayer of the waiver to the related item.
 // Sets o.R.Player to related.
 // Adds o to related.R.PlayerWaivers.
@@ -881,9 +802,9 @@ func (o *Waiver) SetPlayer(exec boil.Executor, insert bool, related *Player) err
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `Waiver` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"player_id"}),
-		strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns),
+		"UPDATE \"Waiver\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"player_id"}),
+		strmangle.WhereClause("\"", "\"", 2, waiverPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -948,9 +869,88 @@ func (o *Waiver) RemovePlayer(exec boil.Executor, related *Player) error {
 	return nil
 }
 
+// SetToTeamTeam of the waiver to the related item.
+// Sets o.R.ToTeamTeam to related.
+// Adds o to related.R.ToTeamWaivers.
+func (o *Waiver) SetToTeamTeam(exec boil.Executor, insert bool, related *Team) error {
+	var err error
+	if insert {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"Waiver\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"to_team"}),
+		strmangle.WhereClause("\"", "\"", 2, waiverPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
+	}
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.ToTeam, related.ID)
+	if o.R == nil {
+		o.R = &waiverR{
+			ToTeamTeam: related,
+		}
+	} else {
+		o.R.ToTeamTeam = related
+	}
+
+	if related.R == nil {
+		related.R = &teamR{
+			ToTeamWaivers: WaiverSlice{o},
+		}
+	} else {
+		related.R.ToTeamWaivers = append(related.R.ToTeamWaivers, o)
+	}
+
+	return nil
+}
+
+// RemoveToTeamTeam relationship.
+// Sets o.R.ToTeamTeam to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *Waiver) RemoveToTeamTeam(exec boil.Executor, related *Team) error {
+	var err error
+
+	queries.SetScanner(&o.ToTeam, nil)
+	if _, err = o.Update(exec, boil.Whitelist("to_team")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.ToTeamTeam = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.ToTeamWaivers {
+		if queries.Equal(o.ToTeam, ri.ToTeam) {
+			continue
+		}
+
+		ln := len(related.R.ToTeamWaivers)
+		if ln > 1 && i < ln-1 {
+			related.R.ToTeamWaivers[i] = related.R.ToTeamWaivers[ln-1]
+		}
+		related.R.ToTeamWaivers = related.R.ToTeamWaivers[:ln-1]
+		break
+	}
+	return nil
+}
+
 // Waivers retrieves all the records using an executor.
 func Waivers(mods ...qm.QueryMod) waiverQuery {
-	mods = append(mods, qm.From("`Waiver`"))
+	mods = append(mods, qm.From("\"Waiver\""))
 	return waiverQuery{NewQuery(mods...)}
 }
 
@@ -964,7 +964,7 @@ func FindWaiver(exec boil.Executor, iD int, selectCols ...string) (*Waiver, erro
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `Waiver` where `id`=?", sel,
+		"select %s from \"Waiver\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -1022,15 +1022,15 @@ func (o *Waiver) Insert(exec boil.Executor, columns boil.Columns) error {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `Waiver` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"Waiver\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `Waiver` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"Waiver\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `Waiver` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -1043,43 +1043,17 @@ func (o *Waiver) Insert(exec boil.Executor, columns boil.Columns) error {
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into Waiver")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == waiverMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Waiver")
-	}
-
-CacheNoHooks:
 	if !cached {
 		waiverInsertCacheMut.Lock()
 		waiverInsertCache[key] = cache
@@ -1115,9 +1089,9 @@ func (o *Waiver) Update(exec boil.Executor, columns boil.Columns) (int64, error)
 			return 0, errors.New("sqlboiler: unable to update Waiver, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `Waiver` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"Waiver\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, waiverPrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(waiverType, waiverMapping, append(wl, waiverPrimaryKeyColumns...))
 		if err != nil {
@@ -1195,9 +1169,9 @@ func (o WaiverSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `Waiver` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, waiverPrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"Waiver\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, waiverPrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1215,13 +1189,9 @@ func (o WaiverSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	return rowsAff, nil
 }
 
-var mySQLWaiverUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Waiver) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *Waiver) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no Waiver provided for upsert")
 	}
@@ -1236,14 +1206,19 @@ func (o *Waiver) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(waiverColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLWaiverUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -1255,10 +1230,6 @@ func (o *Waiver) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -1282,17 +1253,16 @@ func (o *Waiver) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 			waiverPrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert Waiver, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`Waiver`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `Waiver` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(waiverPrimaryKeyColumns))
+			copy(conflict, waiverPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"Waiver\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(waiverType, waiverMapping, insert)
 		if err != nil {
@@ -1317,46 +1287,18 @@ func (o *Waiver) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for Waiver")
+		return errors.Wrap(err, "sqlboiler: unable to upsert Waiver")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == waiverMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(waiverType, waiverMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for Waiver")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Waiver")
-	}
-
-CacheNoHooks:
 	if !cached {
 		waiverUpsertCacheMut.Lock()
 		waiverUpsertCache[key] = cache
@@ -1378,7 +1320,7 @@ func (o *Waiver) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), waiverPrimaryKeyMapping)
-	sql := "DELETE FROM `Waiver` WHERE `id`=?"
+	sql := "DELETE FROM \"Waiver\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1442,8 +1384,8 @@ func (o WaiverSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `Waiver` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, waiverPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"Waiver\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, waiverPrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1496,8 +1438,8 @@ func (o *WaiverSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `Waiver`.* FROM `Waiver` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, waiverPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"Waiver\".* FROM \"Waiver\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, waiverPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1514,7 +1456,7 @@ func (o *WaiverSlice) ReloadAll(exec boil.Executor) error {
 // WaiverExists checks if the Waiver row exists.
 func WaiverExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `Waiver` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"Waiver\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)

@@ -481,57 +481,6 @@ func testTeamRoundPlayersInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testTeamRoundPlayerToOneTeamRoundUsingTeamRound(t *testing.T) {
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var local TeamRoundPlayer
-	var foreign TeamRound
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, teamRoundPlayerDBTypes, true, teamRoundPlayerColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize TeamRoundPlayer struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, teamRoundDBTypes, false, teamRoundColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize TeamRound struct: %s", err)
-	}
-
-	if err := foreign.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	queries.Assign(&local.TeamRoundID, foreign.ID)
-	if err := local.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.TeamRound().One(tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !queries.Equal(check.ID, foreign.ID) {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	slice := TeamRoundPlayerSlice{&local}
-	if err = local.L.LoadTeamRound(tx, false, (*[]*TeamRoundPlayer)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.TeamRound == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.TeamRound = nil
-	if err = local.L.LoadTeamRound(tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.TeamRound == nil {
-		t.Error("struct should have been eager loaded")
-	}
-}
-
 func testTeamRoundPlayerToOneTeamPlayerUsingTeamPlayer(t *testing.T) {
 
 	tx := MustTx(boil.Begin())
@@ -583,110 +532,54 @@ func testTeamRoundPlayerToOneTeamPlayerUsingTeamPlayer(t *testing.T) {
 	}
 }
 
-func testTeamRoundPlayerToOneSetOpTeamRoundUsingTeamRound(t *testing.T) {
-	var err error
+func testTeamRoundPlayerToOneTeamRoundUsingTeamRound(t *testing.T) {
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
 
-	var a TeamRoundPlayer
-	var b, c TeamRound
+	var local TeamRoundPlayer
+	var foreign TeamRound
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, teamRoundPlayerDBTypes, false, strmangle.SetComplement(teamRoundPlayerPrimaryKeyColumns, teamRoundPlayerColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &local, teamRoundPlayerDBTypes, true, teamRoundPlayerColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize TeamRoundPlayer struct: %s", err)
 	}
-	if err = randomize.Struct(seed, &b, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &foreign, teamRoundDBTypes, false, teamRoundColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize TeamRound struct: %s", err)
 	}
 
-	if err := a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(tx, boil.Infer()); err != nil {
+	if err := foreign.Insert(tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	for i, x := range []*TeamRound{&b, &c} {
-		err = a.SetTeamRound(tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if a.R.TeamRound != x {
-			t.Error("relationship struct not set to correct value")
-		}
-
-		if x.R.TeamRoundTeamRoundPlayers[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if !queries.Equal(a.TeamRoundID, x.ID) {
-			t.Error("foreign key was wrong value", a.TeamRoundID)
-		}
-
-		zero := reflect.Zero(reflect.TypeOf(a.TeamRoundID))
-		reflect.Indirect(reflect.ValueOf(&a.TeamRoundID)).Set(zero)
-
-		if err = a.Reload(tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
-
-		if !queries.Equal(a.TeamRoundID, x.ID) {
-			t.Error("foreign key was wrong value", a.TeamRoundID, x.ID)
-		}
-	}
-}
-
-func testTeamRoundPlayerToOneRemoveOpTeamRoundUsingTeamRound(t *testing.T) {
-	var err error
-
-	tx := MustTx(boil.Begin())
-	defer func() { _ = tx.Rollback() }()
-
-	var a TeamRoundPlayer
-	var b TeamRound
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, teamRoundPlayerDBTypes, false, strmangle.SetComplement(teamRoundPlayerPrimaryKeyColumns, teamRoundPlayerColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
+	queries.Assign(&local.TeamRoundID, foreign.ID)
+	if err := local.Insert(tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = a.Insert(tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.SetTeamRound(tx, true, &b); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.RemoveTeamRound(tx, &b); err != nil {
-		t.Error("failed to remove relationship")
-	}
-
-	count, err := a.TeamRound().Count(tx)
+	check, err := local.TeamRound().One(tx)
 	if err != nil {
-		t.Error(err)
-	}
-	if count != 0 {
-		t.Error("want no relationships remaining")
+		t.Fatal(err)
 	}
 
-	if a.R.TeamRound != nil {
-		t.Error("R struct entry should be nil")
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
 	}
 
-	if !queries.IsValuerNil(a.TeamRoundID) {
-		t.Error("foreign key value should be nil")
+	slice := TeamRoundPlayerSlice{&local}
+	if err = local.L.LoadTeamRound(tx, false, (*[]*TeamRoundPlayer)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.TeamRound == nil {
+		t.Error("struct should have been eager loaded")
 	}
 
-	if len(b.R.TeamRoundTeamRoundPlayers) != 0 {
-		t.Error("failed to remove a from b's relationships")
+	local.R.TeamRound = nil
+	if err = local.L.LoadTeamRound(tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.TeamRound == nil {
+		t.Error("struct should have been eager loaded")
 	}
 }
 
@@ -797,6 +690,113 @@ func testTeamRoundPlayerToOneRemoveOpTeamPlayerUsingTeamPlayer(t *testing.T) {
 	}
 }
 
+func testTeamRoundPlayerToOneSetOpTeamRoundUsingTeamRound(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a TeamRoundPlayer
+	var b, c TeamRound
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, teamRoundPlayerDBTypes, false, strmangle.SetComplement(teamRoundPlayerPrimaryKeyColumns, teamRoundPlayerColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*TeamRound{&b, &c} {
+		err = a.SetTeamRound(tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.TeamRound != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.TeamRoundTeamRoundPlayers[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.TeamRoundID, x.ID) {
+			t.Error("foreign key was wrong value", a.TeamRoundID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.TeamRoundID))
+		reflect.Indirect(reflect.ValueOf(&a.TeamRoundID)).Set(zero)
+
+		if err = a.Reload(tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.TeamRoundID, x.ID) {
+			t.Error("foreign key was wrong value", a.TeamRoundID, x.ID)
+		}
+	}
+}
+
+func testTeamRoundPlayerToOneRemoveOpTeamRoundUsingTeamRound(t *testing.T) {
+	var err error
+
+	tx := MustTx(boil.Begin())
+	defer func() { _ = tx.Rollback() }()
+
+	var a TeamRoundPlayer
+	var b TeamRound
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, teamRoundPlayerDBTypes, false, strmangle.SetComplement(teamRoundPlayerPrimaryKeyColumns, teamRoundPlayerColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, teamRoundDBTypes, false, strmangle.SetComplement(teamRoundPrimaryKeyColumns, teamRoundColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetTeamRound(tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveTeamRound(tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.TeamRound().Count(tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.TeamRound != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.TeamRoundID) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.TeamRoundTeamRoundPlayers) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
 func testTeamRoundPlayersReload(t *testing.T) {
 	t.Parallel()
 
@@ -868,7 +868,7 @@ func testTeamRoundPlayersSelect(t *testing.T) {
 }
 
 var (
-	teamRoundPlayerDBTypes = map[string]string{`ID`: `int`, `TeamRoundID`: `int`, `TeamPlayerID`: `int`, `Status`: `int`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	teamRoundPlayerDBTypes = map[string]string{`ID`: `integer`, `TeamRoundID`: `integer`, `TeamPlayerID`: `integer`, `Status`: `integer`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_                      = bytes.MinRead
 )
 
@@ -987,21 +987,18 @@ func testTeamRoundPlayersUpsert(t *testing.T) {
 	if len(teamRoundPlayerAllColumns) == len(teamRoundPlayerPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLTeamRoundPlayerUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := TeamRoundPlayer{}
-	if err = randomize.Struct(seed, &o, teamRoundPlayerDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, teamRoundPlayerDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize TeamRoundPlayer struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TeamRoundPlayer: %s", err)
 	}
 
@@ -1018,7 +1015,7 @@ func testTeamRoundPlayersUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize TeamRoundPlayer struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TeamRoundPlayer: %s", err)
 	}
 

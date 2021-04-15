@@ -28,7 +28,7 @@ type TradePlayer struct {
 	TradeID      null.Int  `boil:"trade_id" json:"trade_id,omitempty" toml:"trade_id" yaml:"trade_id,omitempty"`
 	CurrentTeam  null.Int  `boil:"current_team" json:"current_team,omitempty" toml:"current_team" yaml:"current_team,omitempty"`
 	CreatedAt    time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt    time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt    null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *tradePlayerR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L tradePlayerL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -58,32 +58,32 @@ var TradePlayerWhere = struct {
 	TradeID      whereHelpernull_Int
 	CurrentTeam  whereHelpernull_Int
 	CreatedAt    whereHelpertime_Time
-	DeletedAt    whereHelpertime_Time
+	DeletedAt    whereHelpernull_Time
 }{
-	ID:           whereHelperint{field: "`TradePlayers`.`id`"},
-	TeamPlayerID: whereHelpernull_Int{field: "`TradePlayers`.`team_player_id`"},
-	TradeID:      whereHelpernull_Int{field: "`TradePlayers`.`trade_id`"},
-	CurrentTeam:  whereHelpernull_Int{field: "`TradePlayers`.`current_team`"},
-	CreatedAt:    whereHelpertime_Time{field: "`TradePlayers`.`created_at`"},
-	DeletedAt:    whereHelpertime_Time{field: "`TradePlayers`.`deleted_at`"},
+	ID:           whereHelperint{field: "\"TradePlayers\".\"id\""},
+	TeamPlayerID: whereHelpernull_Int{field: "\"TradePlayers\".\"team_player_id\""},
+	TradeID:      whereHelpernull_Int{field: "\"TradePlayers\".\"trade_id\""},
+	CurrentTeam:  whereHelpernull_Int{field: "\"TradePlayers\".\"current_team\""},
+	CreatedAt:    whereHelpertime_Time{field: "\"TradePlayers\".\"created_at\""},
+	DeletedAt:    whereHelpernull_Time{field: "\"TradePlayers\".\"deleted_at\""},
 }
 
 // TradePlayerRels is where relationship names are stored.
 var TradePlayerRels = struct {
+	CurrentTeamTeam string
 	TeamPlayer      string
 	Trade           string
-	CurrentTeamTeam string
 }{
+	CurrentTeamTeam: "CurrentTeamTeam",
 	TeamPlayer:      "TeamPlayer",
 	Trade:           "Trade",
-	CurrentTeamTeam: "CurrentTeamTeam",
 }
 
 // tradePlayerR is where relationships are stored.
 type tradePlayerR struct {
+	CurrentTeamTeam *Team       `boil:"CurrentTeamTeam" json:"CurrentTeamTeam" toml:"CurrentTeamTeam" yaml:"CurrentTeamTeam"`
 	TeamPlayer      *TeamPlayer `boil:"TeamPlayer" json:"TeamPlayer" toml:"TeamPlayer" yaml:"TeamPlayer"`
 	Trade           *Trade      `boil:"Trade" json:"Trade" toml:"Trade" yaml:"Trade"`
-	CurrentTeamTeam *Team       `boil:"CurrentTeamTeam" json:"CurrentTeamTeam" toml:"CurrentTeamTeam" yaml:"CurrentTeamTeam"`
 }
 
 // NewStruct creates a new relationship struct
@@ -96,8 +96,8 @@ type tradePlayerL struct{}
 
 var (
 	tradePlayerAllColumns            = []string{"id", "team_player_id", "trade_id", "current_team", "created_at", "deleted_at"}
-	tradePlayerColumnsWithoutDefault = []string{"team_player_id", "trade_id", "current_team"}
-	tradePlayerColumnsWithDefault    = []string{"id", "created_at", "deleted_at"}
+	tradePlayerColumnsWithoutDefault = []string{"team_player_id", "trade_id", "current_team", "created_at", "deleted_at"}
+	tradePlayerColumnsWithDefault    = []string{"id"}
 	tradePlayerPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -340,16 +340,30 @@ func (q tradePlayerQuery) Exists(exec boil.Executor) (bool, error) {
 	return count > 0, nil
 }
 
+// CurrentTeamTeam pointed to by the foreign key.
+func (o *TradePlayer) CurrentTeamTeam(mods ...qm.QueryMod) teamQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.CurrentTeam),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	query := Teams(queryMods...)
+	queries.SetFrom(query.Query, "\"Teams\"")
+
+	return query
+}
+
 // TeamPlayer pointed to by the foreign key.
 func (o *TradePlayer) TeamPlayer(mods ...qm.QueryMod) teamPlayerQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.TeamPlayerID),
+		qm.Where("\"id\" = ?", o.TeamPlayerID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := TeamPlayers(queryMods...)
-	queries.SetFrom(query.Query, "`TeamPlayers`")
+	queries.SetFrom(query.Query, "\"TeamPlayers\"")
 
 	return query
 }
@@ -357,29 +371,123 @@ func (o *TradePlayer) TeamPlayer(mods ...qm.QueryMod) teamPlayerQuery {
 // Trade pointed to by the foreign key.
 func (o *TradePlayer) Trade(mods ...qm.QueryMod) tradeQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.TradeID),
+		qm.Where("\"id\" = ?", o.TradeID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Trades(queryMods...)
-	queries.SetFrom(query.Query, "`Trades`")
+	queries.SetFrom(query.Query, "\"Trades\"")
 
 	return query
 }
 
-// CurrentTeamTeam pointed to by the foreign key.
-func (o *TradePlayer) CurrentTeamTeam(mods ...qm.QueryMod) teamQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.CurrentTeam),
+// LoadCurrentTeamTeam allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (tradePlayerL) LoadCurrentTeamTeam(e boil.Executor, singular bool, maybeTradePlayer interface{}, mods queries.Applicator) error {
+	var slice []*TradePlayer
+	var object *TradePlayer
+
+	if singular {
+		object = maybeTradePlayer.(*TradePlayer)
+	} else {
+		slice = *maybeTradePlayer.(*[]*TradePlayer)
 	}
 
-	queryMods = append(queryMods, mods...)
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &tradePlayerR{}
+		}
+		if !queries.IsNil(object.CurrentTeam) {
+			args = append(args, object.CurrentTeam)
+		}
 
-	query := Teams(queryMods...)
-	queries.SetFrom(query.Query, "`Teams`")
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &tradePlayerR{}
+			}
 
-	return query
+			for _, a := range args {
+				if queries.Equal(a, obj.CurrentTeam) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.CurrentTeam) {
+				args = append(args, obj.CurrentTeam)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`Teams`),
+		qm.WhereIn(`Teams.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.Query(e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Team")
+	}
+
+	var resultSlice []*Team
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Team")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for Teams")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for Teams")
+	}
+
+	if len(tradePlayerAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.CurrentTeamTeam = foreign
+		if foreign.R == nil {
+			foreign.R = &teamR{}
+		}
+		foreign.R.CurrentTeamTradePlayers = append(foreign.R.CurrentTeamTradePlayers, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.CurrentTeam, foreign.ID) {
+				local.R.CurrentTeamTeam = foreign
+				if foreign.R == nil {
+					foreign.R = &teamR{}
+				}
+				foreign.R.CurrentTeamTradePlayers = append(foreign.R.CurrentTeamTradePlayers, local)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadTeamPlayer allows an eager lookup of values, cached into the
@@ -598,111 +706,82 @@ func (tradePlayerL) LoadTrade(e boil.Executor, singular bool, maybeTradePlayer i
 	return nil
 }
 
-// LoadCurrentTeamTeam allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (tradePlayerL) LoadCurrentTeamTeam(e boil.Executor, singular bool, maybeTradePlayer interface{}, mods queries.Applicator) error {
-	var slice []*TradePlayer
-	var object *TradePlayer
-
-	if singular {
-		object = maybeTradePlayer.(*TradePlayer)
-	} else {
-		slice = *maybeTradePlayer.(*[]*TradePlayer)
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &tradePlayerR{}
-		}
-		if !queries.IsNil(object.CurrentTeam) {
-			args = append(args, object.CurrentTeam)
-		}
-
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &tradePlayerR{}
-			}
-
-			for _, a := range args {
-				if queries.Equal(a, obj.CurrentTeam) {
-					continue Outer
-				}
-			}
-
-			if !queries.IsNil(obj.CurrentTeam) {
-				args = append(args, obj.CurrentTeam)
-			}
-
+// SetCurrentTeamTeam of the tradePlayer to the related item.
+// Sets o.R.CurrentTeamTeam to related.
+// Adds o to related.R.CurrentTeamTradePlayers.
+func (o *TradePlayer) SetCurrentTeamTeam(exec boil.Executor, insert bool, related *Team) error {
+	var err error
+	if insert {
+		if err = related.Insert(exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
 
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`Teams`),
-		qm.WhereIn(`Teams.id in ?`, args...),
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"TradePlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"current_team"}),
+		strmangle.WhereClause("\"", "\"", 2, tradePlayerPrimaryKeyColumns),
 	)
-	if mods != nil {
-		mods.Apply(query)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.DebugMode {
+		fmt.Fprintln(boil.DebugWriter, updateQuery)
+		fmt.Fprintln(boil.DebugWriter, values)
+	}
+	if _, err = exec.Exec(updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
 	}
 
-	results, err := query.Query(e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load Team")
-	}
-
-	var resultSlice []*Team
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Team")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for Teams")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for Teams")
-	}
-
-	if len(tradePlayerAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(e); err != nil {
-				return err
-			}
+	queries.Assign(&o.CurrentTeam, related.ID)
+	if o.R == nil {
+		o.R = &tradePlayerR{
+			CurrentTeamTeam: related,
 		}
+	} else {
+		o.R.CurrentTeamTeam = related
 	}
 
-	if len(resultSlice) == 0 {
+	if related.R == nil {
+		related.R = &teamR{
+			CurrentTeamTradePlayers: TradePlayerSlice{o},
+		}
+	} else {
+		related.R.CurrentTeamTradePlayers = append(related.R.CurrentTeamTradePlayers, o)
+	}
+
+	return nil
+}
+
+// RemoveCurrentTeamTeam relationship.
+// Sets o.R.CurrentTeamTeam to nil.
+// Removes o from all passed in related items' relationships struct (Optional).
+func (o *TradePlayer) RemoveCurrentTeamTeam(exec boil.Executor, related *Team) error {
+	var err error
+
+	queries.SetScanner(&o.CurrentTeam, nil)
+	if _, err = o.Update(exec, boil.Whitelist("current_team")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.CurrentTeamTeam = nil
+	}
+	if related == nil || related.R == nil {
 		return nil
 	}
 
-	if singular {
-		foreign := resultSlice[0]
-		object.R.CurrentTeamTeam = foreign
-		if foreign.R == nil {
-			foreign.R = &teamR{}
+	for i, ri := range related.R.CurrentTeamTradePlayers {
+		if queries.Equal(o.CurrentTeam, ri.CurrentTeam) {
+			continue
 		}
-		foreign.R.CurrentTeamTradePlayers = append(foreign.R.CurrentTeamTradePlayers, object)
-		return nil
-	}
 
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.CurrentTeam, foreign.ID) {
-				local.R.CurrentTeamTeam = foreign
-				if foreign.R == nil {
-					foreign.R = &teamR{}
-				}
-				foreign.R.CurrentTeamTradePlayers = append(foreign.R.CurrentTeamTradePlayers, local)
-				break
-			}
+		ln := len(related.R.CurrentTeamTradePlayers)
+		if ln > 1 && i < ln-1 {
+			related.R.CurrentTeamTradePlayers[i] = related.R.CurrentTeamTradePlayers[ln-1]
 		}
+		related.R.CurrentTeamTradePlayers = related.R.CurrentTeamTradePlayers[:ln-1]
+		break
 	}
-
 	return nil
 }
 
@@ -718,9 +797,9 @@ func (o *TradePlayer) SetTeamPlayer(exec boil.Executor, insert bool, related *Te
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `TradePlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"team_player_id"}),
-		strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns),
+		"UPDATE \"TradePlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"team_player_id"}),
+		strmangle.WhereClause("\"", "\"", 2, tradePlayerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -797,9 +876,9 @@ func (o *TradePlayer) SetTrade(exec boil.Executor, insert bool, related *Trade) 
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `TradePlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"trade_id"}),
-		strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns),
+		"UPDATE \"TradePlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"trade_id"}),
+		strmangle.WhereClause("\"", "\"", 2, tradePlayerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -864,88 +943,9 @@ func (o *TradePlayer) RemoveTrade(exec boil.Executor, related *Trade) error {
 	return nil
 }
 
-// SetCurrentTeamTeam of the tradePlayer to the related item.
-// Sets o.R.CurrentTeamTeam to related.
-// Adds o to related.R.CurrentTeamTradePlayers.
-func (o *TradePlayer) SetCurrentTeamTeam(exec boil.Executor, insert bool, related *Team) error {
-	var err error
-	if insert {
-		if err = related.Insert(exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE `TradePlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"current_team"}),
-		strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, updateQuery)
-		fmt.Fprintln(boil.DebugWriter, values)
-	}
-	if _, err = exec.Exec(updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.CurrentTeam, related.ID)
-	if o.R == nil {
-		o.R = &tradePlayerR{
-			CurrentTeamTeam: related,
-		}
-	} else {
-		o.R.CurrentTeamTeam = related
-	}
-
-	if related.R == nil {
-		related.R = &teamR{
-			CurrentTeamTradePlayers: TradePlayerSlice{o},
-		}
-	} else {
-		related.R.CurrentTeamTradePlayers = append(related.R.CurrentTeamTradePlayers, o)
-	}
-
-	return nil
-}
-
-// RemoveCurrentTeamTeam relationship.
-// Sets o.R.CurrentTeamTeam to nil.
-// Removes o from all passed in related items' relationships struct (Optional).
-func (o *TradePlayer) RemoveCurrentTeamTeam(exec boil.Executor, related *Team) error {
-	var err error
-
-	queries.SetScanner(&o.CurrentTeam, nil)
-	if _, err = o.Update(exec, boil.Whitelist("current_team")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.CurrentTeamTeam = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.CurrentTeamTradePlayers {
-		if queries.Equal(o.CurrentTeam, ri.CurrentTeam) {
-			continue
-		}
-
-		ln := len(related.R.CurrentTeamTradePlayers)
-		if ln > 1 && i < ln-1 {
-			related.R.CurrentTeamTradePlayers[i] = related.R.CurrentTeamTradePlayers[ln-1]
-		}
-		related.R.CurrentTeamTradePlayers = related.R.CurrentTeamTradePlayers[:ln-1]
-		break
-	}
-	return nil
-}
-
 // TradePlayers retrieves all the records using an executor.
 func TradePlayers(mods ...qm.QueryMod) tradePlayerQuery {
-	mods = append(mods, qm.From("`TradePlayers`"))
+	mods = append(mods, qm.From("\"TradePlayers\""))
 	return tradePlayerQuery{NewQuery(mods...)}
 }
 
@@ -959,7 +959,7 @@ func FindTradePlayer(exec boil.Executor, iD int, selectCols ...string) (*TradePl
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `TradePlayers` where `id`=?", sel,
+		"select %s from \"TradePlayers\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -1017,15 +1017,15 @@ func (o *TradePlayer) Insert(exec boil.Executor, columns boil.Columns) error {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `TradePlayers` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"TradePlayers\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `TradePlayers` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"TradePlayers\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `TradePlayers` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -1038,43 +1038,17 @@ func (o *TradePlayer) Insert(exec boil.Executor, columns boil.Columns) error {
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into TradePlayers")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == tradePlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TradePlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		tradePlayerInsertCacheMut.Lock()
 		tradePlayerInsertCache[key] = cache
@@ -1110,9 +1084,9 @@ func (o *TradePlayer) Update(exec boil.Executor, columns boil.Columns) (int64, e
 			return 0, errors.New("sqlboiler: unable to update TradePlayers, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `TradePlayers` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"TradePlayers\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, tradePlayerPrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(tradePlayerType, tradePlayerMapping, append(wl, tradePlayerPrimaryKeyColumns...))
 		if err != nil {
@@ -1190,9 +1164,9 @@ func (o TradePlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `TradePlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, tradePlayerPrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"TradePlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, tradePlayerPrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1210,13 +1184,9 @@ func (o TradePlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	return rowsAff, nil
 }
 
-var mySQLTradePlayerUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *TradePlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *TradePlayer) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no TradePlayers provided for upsert")
 	}
@@ -1231,14 +1201,19 @@ func (o *TradePlayer) Upsert(exec boil.Executor, updateColumns, insertColumns bo
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(tradePlayerColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLTradePlayerUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -1250,10 +1225,6 @@ func (o *TradePlayer) Upsert(exec boil.Executor, updateColumns, insertColumns bo
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -1277,17 +1248,16 @@ func (o *TradePlayer) Upsert(exec boil.Executor, updateColumns, insertColumns bo
 			tradePlayerPrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert TradePlayers, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`TradePlayers`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `TradePlayers` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(tradePlayerPrimaryKeyColumns))
+			copy(conflict, tradePlayerPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"TradePlayers\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(tradePlayerType, tradePlayerMapping, insert)
 		if err != nil {
@@ -1312,46 +1282,18 @@ func (o *TradePlayer) Upsert(exec boil.Executor, updateColumns, insertColumns bo
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for TradePlayers")
+		return errors.Wrap(err, "sqlboiler: unable to upsert TradePlayers")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == tradePlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(tradePlayerType, tradePlayerMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for TradePlayers")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TradePlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		tradePlayerUpsertCacheMut.Lock()
 		tradePlayerUpsertCache[key] = cache
@@ -1373,7 +1315,7 @@ func (o *TradePlayer) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), tradePlayerPrimaryKeyMapping)
-	sql := "DELETE FROM `TradePlayers` WHERE `id`=?"
+	sql := "DELETE FROM \"TradePlayers\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1437,8 +1379,8 @@ func (o TradePlayerSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `TradePlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, tradePlayerPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"TradePlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tradePlayerPrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1491,8 +1433,8 @@ func (o *TradePlayerSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `TradePlayers`.* FROM `TradePlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, tradePlayerPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"TradePlayers\".* FROM \"TradePlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, tradePlayerPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1509,7 +1451,7 @@ func (o *TradePlayerSlice) ReloadAll(exec boil.Executor) error {
 // TradePlayerExists checks if the TradePlayer row exists.
 func TradePlayerExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `TradePlayers` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"TradePlayers\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)

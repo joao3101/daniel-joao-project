@@ -29,7 +29,7 @@ type Player struct {
 	Age       time.Time `boil:"age" json:"age" toml:"age" yaml:"age"`
 	Position  int       `boil:"position" json:"position" toml:"position" yaml:"position"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *playerR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L playerL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -62,15 +62,15 @@ var PlayerWhere = struct {
 	Age       whereHelpertime_Time
 	Position  whereHelperint
 	CreatedAt whereHelpertime_Time
-	DeletedAt whereHelpertime_Time
+	DeletedAt whereHelpernull_Time
 }{
-	ID:        whereHelperint{field: "`Players`.`id`"},
-	ClubID:    whereHelpernull_Int{field: "`Players`.`club_id`"},
-	Name:      whereHelperstring{field: "`Players`.`name`"},
-	Age:       whereHelpertime_Time{field: "`Players`.`age`"},
-	Position:  whereHelperint{field: "`Players`.`position`"},
-	CreatedAt: whereHelpertime_Time{field: "`Players`.`created_at`"},
-	DeletedAt: whereHelpertime_Time{field: "`Players`.`deleted_at`"},
+	ID:        whereHelperint{field: "\"Players\".\"id\""},
+	ClubID:    whereHelpernull_Int{field: "\"Players\".\"club_id\""},
+	Name:      whereHelperstring{field: "\"Players\".\"name\""},
+	Age:       whereHelpertime_Time{field: "\"Players\".\"age\""},
+	Position:  whereHelperint{field: "\"Players\".\"position\""},
+	CreatedAt: whereHelpertime_Time{field: "\"Players\".\"created_at\""},
+	DeletedAt: whereHelpernull_Time{field: "\"Players\".\"deleted_at\""},
 }
 
 // PlayerRels is where relationship names are stored.
@@ -104,8 +104,8 @@ type playerL struct{}
 
 var (
 	playerAllColumns            = []string{"id", "club_id", "name", "age", "position", "created_at", "deleted_at"}
-	playerColumnsWithoutDefault = []string{"club_id", "name", "position"}
-	playerColumnsWithDefault    = []string{"id", "age", "created_at", "deleted_at"}
+	playerColumnsWithoutDefault = []string{"club_id", "name", "age", "position", "created_at", "deleted_at"}
+	playerColumnsWithDefault    = []string{"id"}
 	playerPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -351,13 +351,13 @@ func (q playerQuery) Exists(exec boil.Executor) (bool, error) {
 // Club pointed to by the foreign key.
 func (o *Player) Club(mods ...qm.QueryMod) clubQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.ClubID),
+		qm.Where("\"id\" = ?", o.ClubID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Clubs(queryMods...)
-	queries.SetFrom(query.Query, "`Clubs`")
+	queries.SetFrom(query.Query, "\"Clubs\"")
 
 	return query
 }
@@ -370,14 +370,14 @@ func (o *Player) PlayerPlayerRounds(mods ...qm.QueryMod) playerRoundQuery {
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`PlayerRounds`.`player_id`=?", o.ID),
+		qm.Where("\"PlayerRounds\".\"player_id\"=?", o.ID),
 	)
 
 	query := PlayerRounds(queryMods...)
-	queries.SetFrom(query.Query, "`PlayerRounds`")
+	queries.SetFrom(query.Query, "\"PlayerRounds\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`PlayerRounds`.*"})
+		queries.SetSelect(query.Query, []string{"\"PlayerRounds\".*"})
 	}
 
 	return query
@@ -391,14 +391,14 @@ func (o *Player) PlayerTeamPlayers(mods ...qm.QueryMod) teamPlayerQuery {
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`TeamPlayers`.`player_id`=?", o.ID),
+		qm.Where("\"TeamPlayers\".\"player_id\"=?", o.ID),
 	)
 
 	query := TeamPlayers(queryMods...)
-	queries.SetFrom(query.Query, "`TeamPlayers`")
+	queries.SetFrom(query.Query, "\"TeamPlayers\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`TeamPlayers`.*"})
+		queries.SetSelect(query.Query, []string{"\"TeamPlayers\".*"})
 	}
 
 	return query
@@ -412,14 +412,14 @@ func (o *Player) PlayerWaivers(mods ...qm.QueryMod) waiverQuery {
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`Waiver`.`player_id`=?", o.ID),
+		qm.Where("\"Waiver\".\"player_id\"=?", o.ID),
 	)
 
 	query := Waivers(queryMods...)
-	queries.SetFrom(query.Query, "`Waiver`")
+	queries.SetFrom(query.Query, "\"Waiver\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`Waiver`.*"})
+		queries.SetSelect(query.Query, []string{"\"Waiver\".*"})
 	}
 
 	return query
@@ -839,9 +839,9 @@ func (o *Player) SetClub(exec boil.Executor, insert bool, related *Club) error {
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `Players` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"club_id"}),
-		strmangle.WhereClause("`", "`", 0, playerPrimaryKeyColumns),
+		"UPDATE \"Players\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"club_id"}),
+		strmangle.WhereClause("\"", "\"", 2, playerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -920,9 +920,9 @@ func (o *Player) AddPlayerPlayerRounds(exec boil.Executor, insert bool, related 
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `PlayerRounds` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"player_id"}),
-				strmangle.WhereClause("`", "`", 0, playerRoundPrimaryKeyColumns),
+				"UPDATE \"PlayerRounds\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"player_id"}),
+				strmangle.WhereClause("\"", "\"", 2, playerRoundPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -965,7 +965,7 @@ func (o *Player) AddPlayerPlayerRounds(exec boil.Executor, insert bool, related 
 // Replaces o.R.PlayerPlayerRounds with related.
 // Sets related.R.Player's PlayerPlayerRounds accordingly.
 func (o *Player) SetPlayerPlayerRounds(exec boil.Executor, insert bool, related ...*PlayerRound) error {
-	query := "update `PlayerRounds` set `player_id` = null where `player_id` = ?"
+	query := "update \"PlayerRounds\" set \"player_id\" = null where \"player_id\" = $1"
 	values := []interface{}{o.ID}
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, query)
@@ -1041,9 +1041,9 @@ func (o *Player) AddPlayerTeamPlayers(exec boil.Executor, insert bool, related .
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `TeamPlayers` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"player_id"}),
-				strmangle.WhereClause("`", "`", 0, teamPlayerPrimaryKeyColumns),
+				"UPDATE \"TeamPlayers\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"player_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamPlayerPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1093,9 +1093,9 @@ func (o *Player) AddPlayerWaivers(exec boil.Executor, insert bool, related ...*W
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `Waiver` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"player_id"}),
-				strmangle.WhereClause("`", "`", 0, waiverPrimaryKeyColumns),
+				"UPDATE \"Waiver\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"player_id"}),
+				strmangle.WhereClause("\"", "\"", 2, waiverPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1138,7 +1138,7 @@ func (o *Player) AddPlayerWaivers(exec boil.Executor, insert bool, related ...*W
 // Replaces o.R.PlayerWaivers with related.
 // Sets related.R.Player's PlayerWaivers accordingly.
 func (o *Player) SetPlayerWaivers(exec boil.Executor, insert bool, related ...*Waiver) error {
-	query := "update `Waiver` set `player_id` = null where `player_id` = ?"
+	query := "update \"Waiver\" set \"player_id\" = null where \"player_id\" = $1"
 	values := []interface{}{o.ID}
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, query)
@@ -1202,7 +1202,7 @@ func (o *Player) RemovePlayerWaivers(exec boil.Executor, related ...*Waiver) err
 
 // Players retrieves all the records using an executor.
 func Players(mods ...qm.QueryMod) playerQuery {
-	mods = append(mods, qm.From("`Players`"))
+	mods = append(mods, qm.From("\"Players\""))
 	return playerQuery{NewQuery(mods...)}
 }
 
@@ -1216,7 +1216,7 @@ func FindPlayer(exec boil.Executor, iD int, selectCols ...string) (*Player, erro
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `Players` where `id`=?", sel,
+		"select %s from \"Players\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -1274,15 +1274,15 @@ func (o *Player) Insert(exec boil.Executor, columns boil.Columns) error {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `Players` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"Players\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `Players` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"Players\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `Players` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, playerPrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -1295,43 +1295,17 @@ func (o *Player) Insert(exec boil.Executor, columns boil.Columns) error {
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into Players")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == playerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Players")
-	}
-
-CacheNoHooks:
 	if !cached {
 		playerInsertCacheMut.Lock()
 		playerInsertCache[key] = cache
@@ -1367,9 +1341,9 @@ func (o *Player) Update(exec boil.Executor, columns boil.Columns) (int64, error)
 			return 0, errors.New("sqlboiler: unable to update Players, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `Players` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, playerPrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"Players\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, playerPrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(playerType, playerMapping, append(wl, playerPrimaryKeyColumns...))
 		if err != nil {
@@ -1447,9 +1421,9 @@ func (o PlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `Players` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, playerPrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"Players\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, playerPrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1467,13 +1441,9 @@ func (o PlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	return rowsAff, nil
 }
 
-var mySQLPlayerUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Player) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *Player) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no Players provided for upsert")
 	}
@@ -1488,14 +1458,19 @@ func (o *Player) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(playerColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLPlayerUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -1507,10 +1482,6 @@ func (o *Player) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -1534,17 +1505,16 @@ func (o *Player) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 			playerPrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert Players, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`Players`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `Players` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(playerPrimaryKeyColumns))
+			copy(conflict, playerPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"Players\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(playerType, playerMapping, insert)
 		if err != nil {
@@ -1569,46 +1539,18 @@ func (o *Player) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for Players")
+		return errors.Wrap(err, "sqlboiler: unable to upsert Players")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == playerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(playerType, playerMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for Players")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Players")
-	}
-
-CacheNoHooks:
 	if !cached {
 		playerUpsertCacheMut.Lock()
 		playerUpsertCache[key] = cache
@@ -1630,7 +1572,7 @@ func (o *Player) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), playerPrimaryKeyMapping)
-	sql := "DELETE FROM `Players` WHERE `id`=?"
+	sql := "DELETE FROM \"Players\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1694,8 +1636,8 @@ func (o PlayerSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `Players` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, playerPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"Players\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, playerPrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1748,8 +1690,8 @@ func (o *PlayerSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `Players`.* FROM `Players` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, playerPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"Players\".* FROM \"Players\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, playerPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1766,7 +1708,7 @@ func (o *PlayerSlice) ReloadAll(exec boil.Executor) error {
 // PlayerExists checks if the Player row exists.
 func PlayerExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `Players` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"Players\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)

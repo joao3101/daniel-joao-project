@@ -1417,7 +1417,7 @@ func testTeamPlayersSelect(t *testing.T) {
 }
 
 var (
-	teamPlayerDBTypes = map[string]string{`ID`: `int`, `PlayerID`: `int`, `TeamID`: `int`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	teamPlayerDBTypes = map[string]string{`ID`: `integer`, `PlayerID`: `integer`, `TeamID`: `integer`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_                 = bytes.MinRead
 )
 
@@ -1536,21 +1536,18 @@ func testTeamPlayersUpsert(t *testing.T) {
 	if len(teamPlayerAllColumns) == len(teamPlayerPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLTeamPlayerUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := TeamPlayer{}
-	if err = randomize.Struct(seed, &o, teamPlayerDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, teamPlayerDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize TeamPlayer struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TeamPlayer: %s", err)
 	}
 
@@ -1567,7 +1564,7 @@ func testTeamPlayersUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize TeamPlayer struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert TeamPlayer: %s", err)
 	}
 

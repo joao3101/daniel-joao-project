@@ -27,6 +27,7 @@ func TestParent(t *testing.T) {
 	t.Run("Trades", testTrades)
 	t.Run("Users", testUsers)
 	t.Run("Waivers", testWaivers)
+	t.Run("SchemaMigrations", testSchemaMigrations)
 }
 
 func TestDelete(t *testing.T) {
@@ -45,6 +46,7 @@ func TestDelete(t *testing.T) {
 	t.Run("Trades", testTradesDelete)
 	t.Run("Users", testUsersDelete)
 	t.Run("Waivers", testWaiversDelete)
+	t.Run("SchemaMigrations", testSchemaMigrationsDelete)
 }
 
 func TestQueryDeleteAll(t *testing.T) {
@@ -63,6 +65,7 @@ func TestQueryDeleteAll(t *testing.T) {
 	t.Run("Trades", testTradesQueryDeleteAll)
 	t.Run("Users", testUsersQueryDeleteAll)
 	t.Run("Waivers", testWaiversQueryDeleteAll)
+	t.Run("SchemaMigrations", testSchemaMigrationsQueryDeleteAll)
 }
 
 func TestSliceDeleteAll(t *testing.T) {
@@ -81,6 +84,7 @@ func TestSliceDeleteAll(t *testing.T) {
 	t.Run("Trades", testTradesSliceDeleteAll)
 	t.Run("Users", testUsersSliceDeleteAll)
 	t.Run("Waivers", testWaiversSliceDeleteAll)
+	t.Run("SchemaMigrations", testSchemaMigrationsSliceDeleteAll)
 }
 
 func TestExists(t *testing.T) {
@@ -99,6 +103,7 @@ func TestExists(t *testing.T) {
 	t.Run("Trades", testTradesExists)
 	t.Run("Users", testUsersExists)
 	t.Run("Waivers", testWaiversExists)
+	t.Run("SchemaMigrations", testSchemaMigrationsExists)
 }
 
 func TestFind(t *testing.T) {
@@ -117,6 +122,7 @@ func TestFind(t *testing.T) {
 	t.Run("Trades", testTradesFind)
 	t.Run("Users", testUsersFind)
 	t.Run("Waivers", testWaiversFind)
+	t.Run("SchemaMigrations", testSchemaMigrationsFind)
 }
 
 func TestBind(t *testing.T) {
@@ -135,6 +141,7 @@ func TestBind(t *testing.T) {
 	t.Run("Trades", testTradesBind)
 	t.Run("Users", testUsersBind)
 	t.Run("Waivers", testWaiversBind)
+	t.Run("SchemaMigrations", testSchemaMigrationsBind)
 }
 
 func TestOne(t *testing.T) {
@@ -153,6 +160,7 @@ func TestOne(t *testing.T) {
 	t.Run("Trades", testTradesOne)
 	t.Run("Users", testUsersOne)
 	t.Run("Waivers", testWaiversOne)
+	t.Run("SchemaMigrations", testSchemaMigrationsOne)
 }
 
 func TestAll(t *testing.T) {
@@ -171,6 +179,7 @@ func TestAll(t *testing.T) {
 	t.Run("Trades", testTradesAll)
 	t.Run("Users", testUsersAll)
 	t.Run("Waivers", testWaiversAll)
+	t.Run("SchemaMigrations", testSchemaMigrationsAll)
 }
 
 func TestCount(t *testing.T) {
@@ -189,6 +198,7 @@ func TestCount(t *testing.T) {
 	t.Run("Trades", testTradesCount)
 	t.Run("Users", testUsersCount)
 	t.Run("Waivers", testWaiversCount)
+	t.Run("SchemaMigrations", testSchemaMigrationsCount)
 }
 
 func TestHooks(t *testing.T) {
@@ -207,6 +217,7 @@ func TestHooks(t *testing.T) {
 	t.Run("Trades", testTradesHooks)
 	t.Run("Users", testUsersHooks)
 	t.Run("Waivers", testWaiversHooks)
+	t.Run("SchemaMigrations", testSchemaMigrationsHooks)
 }
 
 func TestInsert(t *testing.T) {
@@ -240,37 +251,39 @@ func TestInsert(t *testing.T) {
 	t.Run("Users", testUsersInsertWhitelist)
 	t.Run("Waivers", testWaiversInsert)
 	t.Run("Waivers", testWaiversInsertWhitelist)
+	t.Run("SchemaMigrations", testSchemaMigrationsInsert)
+	t.Run("SchemaMigrations", testSchemaMigrationsInsertWhitelist)
 }
 
 // TestToOne tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToOne(t *testing.T) {
-	t.Run("ClubMatchupToRoundUsingRound", testClubMatchupToOneRoundUsingRound)
-	t.Run("ClubMatchupToClubUsingHomeClubClub", testClubMatchupToOneClubUsingHomeClubClub)
 	t.Run("ClubMatchupToClubUsingAwayClubClub", testClubMatchupToOneClubUsingAwayClubClub)
+	t.Run("ClubMatchupToClubUsingHomeClubClub", testClubMatchupToOneClubUsingHomeClubClub)
+	t.Run("ClubMatchupToRoundUsingRound", testClubMatchupToOneRoundUsingRound)
 	t.Run("PlayerRoundToPlayerUsingPlayer", testPlayerRoundToOnePlayerUsingPlayer)
 	t.Run("PlayerRoundToRoundUsingRound", testPlayerRoundToOneRoundUsingRound)
 	t.Run("PlayerToClubUsingClub", testPlayerToOneClubUsingClub)
-	t.Run("TeamMatchupToRoundUsingRound", testTeamMatchupToOneRoundUsingRound)
-	t.Run("TeamMatchupToTeamUsingHomeTeamTeam", testTeamMatchupToOneTeamUsingHomeTeamTeam)
 	t.Run("TeamMatchupToTeamUsingAwayTeamTeam", testTeamMatchupToOneTeamUsingAwayTeamTeam)
+	t.Run("TeamMatchupToTeamUsingHomeTeamTeam", testTeamMatchupToOneTeamUsingHomeTeamTeam)
+	t.Run("TeamMatchupToRoundUsingRound", testTeamMatchupToOneRoundUsingRound)
 	t.Run("TeamMatchupToTeamUsingWinnerTeam", testTeamMatchupToOneTeamUsingWinnerTeam)
 	t.Run("TeamPlayerToPlayerUsingPlayer", testTeamPlayerToOnePlayerUsingPlayer)
 	t.Run("TeamPlayerToTeamUsingTeam", testTeamPlayerToOneTeamUsingTeam)
-	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRound", testTeamRoundPlayerToOneTeamRoundUsingTeamRound)
 	t.Run("TeamRoundPlayerToTeamPlayerUsingTeamPlayer", testTeamRoundPlayerToOneTeamPlayerUsingTeamPlayer)
+	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRound", testTeamRoundPlayerToOneTeamRoundUsingTeamRound)
 	t.Run("TeamRoundToRoundUsingRound", testTeamRoundToOneRoundUsingRound)
 	t.Run("TeamRoundToTeamUsingTeam", testTeamRoundToOneTeamUsingTeam)
-	t.Run("TeamToUserUsingUser", testTeamToOneUserUsingUser)
 	t.Run("TeamToLeagueUsingLeague", testTeamToOneLeagueUsingLeague)
+	t.Run("TeamToUserUsingUser", testTeamToOneUserUsingUser)
+	t.Run("TradePlayerToTeamUsingCurrentTeamTeam", testTradePlayerToOneTeamUsingCurrentTeamTeam)
 	t.Run("TradePlayerToTeamPlayerUsingTeamPlayer", testTradePlayerToOneTeamPlayerUsingTeamPlayer)
 	t.Run("TradePlayerToTradeUsingTrade", testTradePlayerToOneTradeUsingTrade)
-	t.Run("TradePlayerToTeamUsingCurrentTeamTeam", testTradePlayerToOneTeamUsingCurrentTeamTeam)
 	t.Run("TradeToTeamUsingFromTeamTeam", testTradeToOneTeamUsingFromTeamTeam)
 	t.Run("TradeToTeamUsingToTeamTeam", testTradeToOneTeamUsingToTeamTeam)
 	t.Run("WaiverToTeamUsingFromTeamTeam", testWaiverToOneTeamUsingFromTeamTeam)
-	t.Run("WaiverToTeamUsingToTeamTeam", testWaiverToOneTeamUsingToTeamTeam)
 	t.Run("WaiverToPlayerUsingPlayer", testWaiverToOnePlayerUsingPlayer)
+	t.Run("WaiverToTeamUsingToTeamTeam", testWaiverToOneTeamUsingToTeamTeam)
 }
 
 // TestOneToOne tests cannot be run in parallel
@@ -280,8 +293,8 @@ func TestOneToOne(t *testing.T) {}
 // TestToMany tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToMany(t *testing.T) {
-	t.Run("ClubToHomeClubClubMatchups", testClubToManyHomeClubClubMatchups)
 	t.Run("ClubToAwayClubClubMatchups", testClubToManyAwayClubClubMatchups)
+	t.Run("ClubToHomeClubClubMatchups", testClubToManyHomeClubClubMatchups)
 	t.Run("ClubToClubPlayers", testClubToManyClubPlayers)
 	t.Run("LeagueToLeagueTeams", testLeagueToManyLeagueTeams)
 	t.Run("PlayerToPlayerPlayerRounds", testPlayerToManyPlayerPlayerRounds)
@@ -294,8 +307,8 @@ func TestToMany(t *testing.T) {
 	t.Run("TeamPlayerToTeamPlayerTeamRoundPlayers", testTeamPlayerToManyTeamPlayerTeamRoundPlayers)
 	t.Run("TeamPlayerToTeamPlayerTradePlayers", testTeamPlayerToManyTeamPlayerTradePlayers)
 	t.Run("TeamRoundToTeamRoundTeamRoundPlayers", testTeamRoundToManyTeamRoundTeamRoundPlayers)
-	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyHomeTeamTeamMatchups)
 	t.Run("TeamToAwayTeamTeamMatchups", testTeamToManyAwayTeamTeamMatchups)
+	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyHomeTeamTeamMatchups)
 	t.Run("TeamToWinnerTeamMatchups", testTeamToManyWinnerTeamMatchups)
 	t.Run("TeamToTeamTeamPlayers", testTeamToManyTeamTeamPlayers)
 	t.Run("TeamToTeamTeamRounds", testTeamToManyTeamTeamRounds)
@@ -311,59 +324,59 @@ func TestToMany(t *testing.T) {
 // TestToOneSet tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToOneSet(t *testing.T) {
-	t.Run("ClubMatchupToRoundUsingRoundClubMatchups", testClubMatchupToOneSetOpRoundUsingRound)
-	t.Run("ClubMatchupToClubUsingHomeClubClubMatchups", testClubMatchupToOneSetOpClubUsingHomeClubClub)
 	t.Run("ClubMatchupToClubUsingAwayClubClubMatchups", testClubMatchupToOneSetOpClubUsingAwayClubClub)
+	t.Run("ClubMatchupToClubUsingHomeClubClubMatchups", testClubMatchupToOneSetOpClubUsingHomeClubClub)
+	t.Run("ClubMatchupToRoundUsingRoundClubMatchups", testClubMatchupToOneSetOpRoundUsingRound)
 	t.Run("PlayerRoundToPlayerUsingPlayerPlayerRounds", testPlayerRoundToOneSetOpPlayerUsingPlayer)
 	t.Run("PlayerRoundToRoundUsingRoundPlayerRounds", testPlayerRoundToOneSetOpRoundUsingRound)
 	t.Run("PlayerToClubUsingClubPlayers", testPlayerToOneSetOpClubUsingClub)
-	t.Run("TeamMatchupToRoundUsingRoundTeamMatchups", testTeamMatchupToOneSetOpRoundUsingRound)
-	t.Run("TeamMatchupToTeamUsingHomeTeamTeamMatchups", testTeamMatchupToOneSetOpTeamUsingHomeTeamTeam)
 	t.Run("TeamMatchupToTeamUsingAwayTeamTeamMatchups", testTeamMatchupToOneSetOpTeamUsingAwayTeamTeam)
+	t.Run("TeamMatchupToTeamUsingHomeTeamTeamMatchups", testTeamMatchupToOneSetOpTeamUsingHomeTeamTeam)
+	t.Run("TeamMatchupToRoundUsingRoundTeamMatchups", testTeamMatchupToOneSetOpRoundUsingRound)
 	t.Run("TeamMatchupToTeamUsingWinnerTeamMatchups", testTeamMatchupToOneSetOpTeamUsingWinnerTeam)
 	t.Run("TeamPlayerToPlayerUsingPlayerTeamPlayers", testTeamPlayerToOneSetOpPlayerUsingPlayer)
 	t.Run("TeamPlayerToTeamUsingTeamTeamPlayers", testTeamPlayerToOneSetOpTeamUsingTeam)
-	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRoundTeamRoundPlayers", testTeamRoundPlayerToOneSetOpTeamRoundUsingTeamRound)
 	t.Run("TeamRoundPlayerToTeamPlayerUsingTeamPlayerTeamRoundPlayers", testTeamRoundPlayerToOneSetOpTeamPlayerUsingTeamPlayer)
+	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRoundTeamRoundPlayers", testTeamRoundPlayerToOneSetOpTeamRoundUsingTeamRound)
 	t.Run("TeamRoundToRoundUsingRoundTeamRounds", testTeamRoundToOneSetOpRoundUsingRound)
 	t.Run("TeamRoundToTeamUsingTeamTeamRounds", testTeamRoundToOneSetOpTeamUsingTeam)
-	t.Run("TeamToUserUsingUserTeams", testTeamToOneSetOpUserUsingUser)
 	t.Run("TeamToLeagueUsingLeagueTeams", testTeamToOneSetOpLeagueUsingLeague)
+	t.Run("TeamToUserUsingUserTeams", testTeamToOneSetOpUserUsingUser)
+	t.Run("TradePlayerToTeamUsingCurrentTeamTradePlayers", testTradePlayerToOneSetOpTeamUsingCurrentTeamTeam)
 	t.Run("TradePlayerToTeamPlayerUsingTeamPlayerTradePlayers", testTradePlayerToOneSetOpTeamPlayerUsingTeamPlayer)
 	t.Run("TradePlayerToTradeUsingTradeTradePlayers", testTradePlayerToOneSetOpTradeUsingTrade)
-	t.Run("TradePlayerToTeamUsingCurrentTeamTradePlayers", testTradePlayerToOneSetOpTeamUsingCurrentTeamTeam)
 	t.Run("TradeToTeamUsingFromTeamTrades", testTradeToOneSetOpTeamUsingFromTeamTeam)
 	t.Run("TradeToTeamUsingToTeamTrades", testTradeToOneSetOpTeamUsingToTeamTeam)
 	t.Run("WaiverToTeamUsingFromTeamWaivers", testWaiverToOneSetOpTeamUsingFromTeamTeam)
-	t.Run("WaiverToTeamUsingToTeamWaivers", testWaiverToOneSetOpTeamUsingToTeamTeam)
 	t.Run("WaiverToPlayerUsingPlayerWaivers", testWaiverToOneSetOpPlayerUsingPlayer)
+	t.Run("WaiverToTeamUsingToTeamWaivers", testWaiverToOneSetOpTeamUsingToTeamTeam)
 }
 
 // TestToOneRemove tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToOneRemove(t *testing.T) {
-	t.Run("ClubMatchupToRoundUsingRoundClubMatchups", testClubMatchupToOneRemoveOpRoundUsingRound)
-	t.Run("ClubMatchupToClubUsingHomeClubClubMatchups", testClubMatchupToOneRemoveOpClubUsingHomeClubClub)
 	t.Run("ClubMatchupToClubUsingAwayClubClubMatchups", testClubMatchupToOneRemoveOpClubUsingAwayClubClub)
+	t.Run("ClubMatchupToClubUsingHomeClubClubMatchups", testClubMatchupToOneRemoveOpClubUsingHomeClubClub)
+	t.Run("ClubMatchupToRoundUsingRoundClubMatchups", testClubMatchupToOneRemoveOpRoundUsingRound)
 	t.Run("PlayerRoundToPlayerUsingPlayerPlayerRounds", testPlayerRoundToOneRemoveOpPlayerUsingPlayer)
 	t.Run("PlayerRoundToRoundUsingRoundPlayerRounds", testPlayerRoundToOneRemoveOpRoundUsingRound)
 	t.Run("PlayerToClubUsingClubPlayers", testPlayerToOneRemoveOpClubUsingClub)
-	t.Run("TeamMatchupToRoundUsingRoundTeamMatchups", testTeamMatchupToOneRemoveOpRoundUsingRound)
-	t.Run("TeamMatchupToTeamUsingHomeTeamTeamMatchups", testTeamMatchupToOneRemoveOpTeamUsingHomeTeamTeam)
 	t.Run("TeamMatchupToTeamUsingAwayTeamTeamMatchups", testTeamMatchupToOneRemoveOpTeamUsingAwayTeamTeam)
+	t.Run("TeamMatchupToTeamUsingHomeTeamTeamMatchups", testTeamMatchupToOneRemoveOpTeamUsingHomeTeamTeam)
+	t.Run("TeamMatchupToRoundUsingRoundTeamMatchups", testTeamMatchupToOneRemoveOpRoundUsingRound)
 	t.Run("TeamMatchupToTeamUsingWinnerTeamMatchups", testTeamMatchupToOneRemoveOpTeamUsingWinnerTeam)
-	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRoundTeamRoundPlayers", testTeamRoundPlayerToOneRemoveOpTeamRoundUsingTeamRound)
 	t.Run("TeamRoundPlayerToTeamPlayerUsingTeamPlayerTeamRoundPlayers", testTeamRoundPlayerToOneRemoveOpTeamPlayerUsingTeamPlayer)
+	t.Run("TeamRoundPlayerToTeamRoundUsingTeamRoundTeamRoundPlayers", testTeamRoundPlayerToOneRemoveOpTeamRoundUsingTeamRound)
 	t.Run("TeamRoundToRoundUsingRoundTeamRounds", testTeamRoundToOneRemoveOpRoundUsingRound)
 	t.Run("TeamRoundToTeamUsingTeamTeamRounds", testTeamRoundToOneRemoveOpTeamUsingTeam)
+	t.Run("TradePlayerToTeamUsingCurrentTeamTradePlayers", testTradePlayerToOneRemoveOpTeamUsingCurrentTeamTeam)
 	t.Run("TradePlayerToTeamPlayerUsingTeamPlayerTradePlayers", testTradePlayerToOneRemoveOpTeamPlayerUsingTeamPlayer)
 	t.Run("TradePlayerToTradeUsingTradeTradePlayers", testTradePlayerToOneRemoveOpTradeUsingTrade)
-	t.Run("TradePlayerToTeamUsingCurrentTeamTradePlayers", testTradePlayerToOneRemoveOpTeamUsingCurrentTeamTeam)
 	t.Run("TradeToTeamUsingFromTeamTrades", testTradeToOneRemoveOpTeamUsingFromTeamTeam)
 	t.Run("TradeToTeamUsingToTeamTrades", testTradeToOneRemoveOpTeamUsingToTeamTeam)
 	t.Run("WaiverToTeamUsingFromTeamWaivers", testWaiverToOneRemoveOpTeamUsingFromTeamTeam)
-	t.Run("WaiverToTeamUsingToTeamWaivers", testWaiverToOneRemoveOpTeamUsingToTeamTeam)
 	t.Run("WaiverToPlayerUsingPlayerWaivers", testWaiverToOneRemoveOpPlayerUsingPlayer)
+	t.Run("WaiverToTeamUsingToTeamWaivers", testWaiverToOneRemoveOpTeamUsingToTeamTeam)
 }
 
 // TestOneToOneSet tests cannot be run in parallel
@@ -377,8 +390,8 @@ func TestOneToOneRemove(t *testing.T) {}
 // TestToManyAdd tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToManyAdd(t *testing.T) {
-	t.Run("ClubToHomeClubClubMatchups", testClubToManyAddOpHomeClubClubMatchups)
 	t.Run("ClubToAwayClubClubMatchups", testClubToManyAddOpAwayClubClubMatchups)
+	t.Run("ClubToHomeClubClubMatchups", testClubToManyAddOpHomeClubClubMatchups)
 	t.Run("ClubToClubPlayers", testClubToManyAddOpClubPlayers)
 	t.Run("LeagueToLeagueTeams", testLeagueToManyAddOpLeagueTeams)
 	t.Run("PlayerToPlayerPlayerRounds", testPlayerToManyAddOpPlayerPlayerRounds)
@@ -391,8 +404,8 @@ func TestToManyAdd(t *testing.T) {
 	t.Run("TeamPlayerToTeamPlayerTeamRoundPlayers", testTeamPlayerToManyAddOpTeamPlayerTeamRoundPlayers)
 	t.Run("TeamPlayerToTeamPlayerTradePlayers", testTeamPlayerToManyAddOpTeamPlayerTradePlayers)
 	t.Run("TeamRoundToTeamRoundTeamRoundPlayers", testTeamRoundToManyAddOpTeamRoundTeamRoundPlayers)
-	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyAddOpHomeTeamTeamMatchups)
 	t.Run("TeamToAwayTeamTeamMatchups", testTeamToManyAddOpAwayTeamTeamMatchups)
+	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyAddOpHomeTeamTeamMatchups)
 	t.Run("TeamToWinnerTeamMatchups", testTeamToManyAddOpWinnerTeamMatchups)
 	t.Run("TeamToTeamTeamPlayers", testTeamToManyAddOpTeamTeamPlayers)
 	t.Run("TeamToTeamTeamRounds", testTeamToManyAddOpTeamTeamRounds)
@@ -408,8 +421,8 @@ func TestToManyAdd(t *testing.T) {
 // TestToManySet tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToManySet(t *testing.T) {
-	t.Run("ClubToHomeClubClubMatchups", testClubToManySetOpHomeClubClubMatchups)
 	t.Run("ClubToAwayClubClubMatchups", testClubToManySetOpAwayClubClubMatchups)
+	t.Run("ClubToHomeClubClubMatchups", testClubToManySetOpHomeClubClubMatchups)
 	t.Run("ClubToClubPlayers", testClubToManySetOpClubPlayers)
 	t.Run("PlayerToPlayerPlayerRounds", testPlayerToManySetOpPlayerPlayerRounds)
 	t.Run("PlayerToPlayerWaivers", testPlayerToManySetOpPlayerWaivers)
@@ -420,8 +433,8 @@ func TestToManySet(t *testing.T) {
 	t.Run("TeamPlayerToTeamPlayerTeamRoundPlayers", testTeamPlayerToManySetOpTeamPlayerTeamRoundPlayers)
 	t.Run("TeamPlayerToTeamPlayerTradePlayers", testTeamPlayerToManySetOpTeamPlayerTradePlayers)
 	t.Run("TeamRoundToTeamRoundTeamRoundPlayers", testTeamRoundToManySetOpTeamRoundTeamRoundPlayers)
-	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManySetOpHomeTeamTeamMatchups)
 	t.Run("TeamToAwayTeamTeamMatchups", testTeamToManySetOpAwayTeamTeamMatchups)
+	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManySetOpHomeTeamTeamMatchups)
 	t.Run("TeamToWinnerTeamMatchups", testTeamToManySetOpWinnerTeamMatchups)
 	t.Run("TeamToTeamTeamRounds", testTeamToManySetOpTeamTeamRounds)
 	t.Run("TeamToCurrentTeamTradePlayers", testTeamToManySetOpCurrentTeamTradePlayers)
@@ -435,8 +448,8 @@ func TestToManySet(t *testing.T) {
 // TestToManyRemove tests cannot be run in parallel
 // or deadlocks can occur.
 func TestToManyRemove(t *testing.T) {
-	t.Run("ClubToHomeClubClubMatchups", testClubToManyRemoveOpHomeClubClubMatchups)
 	t.Run("ClubToAwayClubClubMatchups", testClubToManyRemoveOpAwayClubClubMatchups)
+	t.Run("ClubToHomeClubClubMatchups", testClubToManyRemoveOpHomeClubClubMatchups)
 	t.Run("ClubToClubPlayers", testClubToManyRemoveOpClubPlayers)
 	t.Run("PlayerToPlayerPlayerRounds", testPlayerToManyRemoveOpPlayerPlayerRounds)
 	t.Run("PlayerToPlayerWaivers", testPlayerToManyRemoveOpPlayerWaivers)
@@ -447,8 +460,8 @@ func TestToManyRemove(t *testing.T) {
 	t.Run("TeamPlayerToTeamPlayerTeamRoundPlayers", testTeamPlayerToManyRemoveOpTeamPlayerTeamRoundPlayers)
 	t.Run("TeamPlayerToTeamPlayerTradePlayers", testTeamPlayerToManyRemoveOpTeamPlayerTradePlayers)
 	t.Run("TeamRoundToTeamRoundTeamRoundPlayers", testTeamRoundToManyRemoveOpTeamRoundTeamRoundPlayers)
-	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyRemoveOpHomeTeamTeamMatchups)
 	t.Run("TeamToAwayTeamTeamMatchups", testTeamToManyRemoveOpAwayTeamTeamMatchups)
+	t.Run("TeamToHomeTeamTeamMatchups", testTeamToManyRemoveOpHomeTeamTeamMatchups)
 	t.Run("TeamToWinnerTeamMatchups", testTeamToManyRemoveOpWinnerTeamMatchups)
 	t.Run("TeamToTeamTeamRounds", testTeamToManyRemoveOpTeamTeamRounds)
 	t.Run("TeamToCurrentTeamTradePlayers", testTeamToManyRemoveOpCurrentTeamTradePlayers)
@@ -475,6 +488,7 @@ func TestReload(t *testing.T) {
 	t.Run("Trades", testTradesReload)
 	t.Run("Users", testUsersReload)
 	t.Run("Waivers", testWaiversReload)
+	t.Run("SchemaMigrations", testSchemaMigrationsReload)
 }
 
 func TestReloadAll(t *testing.T) {
@@ -493,6 +507,7 @@ func TestReloadAll(t *testing.T) {
 	t.Run("Trades", testTradesReloadAll)
 	t.Run("Users", testUsersReloadAll)
 	t.Run("Waivers", testWaiversReloadAll)
+	t.Run("SchemaMigrations", testSchemaMigrationsReloadAll)
 }
 
 func TestSelect(t *testing.T) {
@@ -511,6 +526,7 @@ func TestSelect(t *testing.T) {
 	t.Run("Trades", testTradesSelect)
 	t.Run("Users", testUsersSelect)
 	t.Run("Waivers", testWaiversSelect)
+	t.Run("SchemaMigrations", testSchemaMigrationsSelect)
 }
 
 func TestUpdate(t *testing.T) {
@@ -529,6 +545,7 @@ func TestUpdate(t *testing.T) {
 	t.Run("Trades", testTradesUpdate)
 	t.Run("Users", testUsersUpdate)
 	t.Run("Waivers", testWaiversUpdate)
+	t.Run("SchemaMigrations", testSchemaMigrationsUpdate)
 }
 
 func TestSliceUpdateAll(t *testing.T) {
@@ -547,4 +564,5 @@ func TestSliceUpdateAll(t *testing.T) {
 	t.Run("Trades", testTradesSliceUpdateAll)
 	t.Run("Users", testUsersSliceUpdateAll)
 	t.Run("Waivers", testWaiversSliceUpdateAll)
+	t.Run("SchemaMigrations", testSchemaMigrationsSliceUpdateAll)
 }

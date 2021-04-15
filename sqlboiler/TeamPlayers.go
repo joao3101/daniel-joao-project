@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -26,7 +27,7 @@ type TeamPlayer struct {
 	PlayerID  int       `boil:"player_id" json:"player_id" toml:"player_id" yaml:"player_id"`
 	TeamID    int       `boil:"team_id" json:"team_id" toml:"team_id" yaml:"team_id"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *teamPlayerR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L teamPlayerL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -53,13 +54,13 @@ var TeamPlayerWhere = struct {
 	PlayerID  whereHelperint
 	TeamID    whereHelperint
 	CreatedAt whereHelpertime_Time
-	DeletedAt whereHelpertime_Time
+	DeletedAt whereHelpernull_Time
 }{
-	ID:        whereHelperint{field: "`TeamPlayers`.`id`"},
-	PlayerID:  whereHelperint{field: "`TeamPlayers`.`player_id`"},
-	TeamID:    whereHelperint{field: "`TeamPlayers`.`team_id`"},
-	CreatedAt: whereHelpertime_Time{field: "`TeamPlayers`.`created_at`"},
-	DeletedAt: whereHelpertime_Time{field: "`TeamPlayers`.`deleted_at`"},
+	ID:        whereHelperint{field: "\"TeamPlayers\".\"id\""},
+	PlayerID:  whereHelperint{field: "\"TeamPlayers\".\"player_id\""},
+	TeamID:    whereHelperint{field: "\"TeamPlayers\".\"team_id\""},
+	CreatedAt: whereHelpertime_Time{field: "\"TeamPlayers\".\"created_at\""},
+	DeletedAt: whereHelpernull_Time{field: "\"TeamPlayers\".\"deleted_at\""},
 }
 
 // TeamPlayerRels is where relationship names are stored.
@@ -93,8 +94,8 @@ type teamPlayerL struct{}
 
 var (
 	teamPlayerAllColumns            = []string{"id", "player_id", "team_id", "created_at", "deleted_at"}
-	teamPlayerColumnsWithoutDefault = []string{"player_id", "team_id"}
-	teamPlayerColumnsWithDefault    = []string{"id", "created_at", "deleted_at"}
+	teamPlayerColumnsWithoutDefault = []string{"player_id", "team_id", "created_at", "deleted_at"}
+	teamPlayerColumnsWithDefault    = []string{"id"}
 	teamPlayerPrimaryKeyColumns     = []string{"id"}
 )
 
@@ -340,13 +341,13 @@ func (q teamPlayerQuery) Exists(exec boil.Executor) (bool, error) {
 // Player pointed to by the foreign key.
 func (o *TeamPlayer) Player(mods ...qm.QueryMod) playerQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.PlayerID),
+		qm.Where("\"id\" = ?", o.PlayerID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Players(queryMods...)
-	queries.SetFrom(query.Query, "`Players`")
+	queries.SetFrom(query.Query, "\"Players\"")
 
 	return query
 }
@@ -354,13 +355,13 @@ func (o *TeamPlayer) Player(mods ...qm.QueryMod) playerQuery {
 // Team pointed to by the foreign key.
 func (o *TeamPlayer) Team(mods ...qm.QueryMod) teamQuery {
 	queryMods := []qm.QueryMod{
-		qm.Where("`id` = ?", o.TeamID),
+		qm.Where("\"id\" = ?", o.TeamID),
 	}
 
 	queryMods = append(queryMods, mods...)
 
 	query := Teams(queryMods...)
-	queries.SetFrom(query.Query, "`Teams`")
+	queries.SetFrom(query.Query, "\"Teams\"")
 
 	return query
 }
@@ -373,14 +374,14 @@ func (o *TeamPlayer) TeamPlayerTeamRoundPlayers(mods ...qm.QueryMod) teamRoundPl
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`TeamRoundPlayers`.`team_player_id`=?", o.ID),
+		qm.Where("\"TeamRoundPlayers\".\"team_player_id\"=?", o.ID),
 	)
 
 	query := TeamRoundPlayers(queryMods...)
-	queries.SetFrom(query.Query, "`TeamRoundPlayers`")
+	queries.SetFrom(query.Query, "\"TeamRoundPlayers\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`TeamRoundPlayers`.*"})
+		queries.SetSelect(query.Query, []string{"\"TeamRoundPlayers\".*"})
 	}
 
 	return query
@@ -394,14 +395,14 @@ func (o *TeamPlayer) TeamPlayerTradePlayers(mods ...qm.QueryMod) tradePlayerQuer
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`TradePlayers`.`team_player_id`=?", o.ID),
+		qm.Where("\"TradePlayers\".\"team_player_id\"=?", o.ID),
 	)
 
 	query := TradePlayers(queryMods...)
-	queries.SetFrom(query.Query, "`TradePlayers`")
+	queries.SetFrom(query.Query, "\"TradePlayers\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`TradePlayers`.*"})
+		queries.SetSelect(query.Query, []string{"\"TradePlayers\".*"})
 	}
 
 	return query
@@ -823,9 +824,9 @@ func (o *TeamPlayer) SetPlayer(exec boil.Executor, insert bool, related *Player)
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `TeamPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"player_id"}),
-		strmangle.WhereClause("`", "`", 0, teamPlayerPrimaryKeyColumns),
+		"UPDATE \"TeamPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"player_id"}),
+		strmangle.WhereClause("\"", "\"", 2, teamPlayerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -869,9 +870,9 @@ func (o *TeamPlayer) SetTeam(exec boil.Executor, insert bool, related *Team) err
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE `TeamPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, []string{"team_id"}),
-		strmangle.WhereClause("`", "`", 0, teamPlayerPrimaryKeyColumns),
+		"UPDATE \"TeamPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"team_id"}),
+		strmangle.WhereClause("\"", "\"", 2, teamPlayerPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -917,9 +918,9 @@ func (o *TeamPlayer) AddTeamPlayerTeamRoundPlayers(exec boil.Executor, insert bo
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `TeamRoundPlayers` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"team_player_id"}),
-				strmangle.WhereClause("`", "`", 0, teamRoundPlayerPrimaryKeyColumns),
+				"UPDATE \"TeamRoundPlayers\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"team_player_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamRoundPlayerPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -962,7 +963,7 @@ func (o *TeamPlayer) AddTeamPlayerTeamRoundPlayers(exec boil.Executor, insert bo
 // Replaces o.R.TeamPlayerTeamRoundPlayers with related.
 // Sets related.R.TeamPlayer's TeamPlayerTeamRoundPlayers accordingly.
 func (o *TeamPlayer) SetTeamPlayerTeamRoundPlayers(exec boil.Executor, insert bool, related ...*TeamRoundPlayer) error {
-	query := "update `TeamRoundPlayers` set `team_player_id` = null where `team_player_id` = ?"
+	query := "update \"TeamRoundPlayers\" set \"team_player_id\" = null where \"team_player_id\" = $1"
 	values := []interface{}{o.ID}
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, query)
@@ -1038,9 +1039,9 @@ func (o *TeamPlayer) AddTeamPlayerTradePlayers(exec boil.Executor, insert bool, 
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `TradePlayers` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"team_player_id"}),
-				strmangle.WhereClause("`", "`", 0, tradePlayerPrimaryKeyColumns),
+				"UPDATE \"TradePlayers\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"team_player_id"}),
+				strmangle.WhereClause("\"", "\"", 2, tradePlayerPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1083,7 +1084,7 @@ func (o *TeamPlayer) AddTeamPlayerTradePlayers(exec boil.Executor, insert bool, 
 // Replaces o.R.TeamPlayerTradePlayers with related.
 // Sets related.R.TeamPlayer's TeamPlayerTradePlayers accordingly.
 func (o *TeamPlayer) SetTeamPlayerTradePlayers(exec boil.Executor, insert bool, related ...*TradePlayer) error {
-	query := "update `TradePlayers` set `team_player_id` = null where `team_player_id` = ?"
+	query := "update \"TradePlayers\" set \"team_player_id\" = null where \"team_player_id\" = $1"
 	values := []interface{}{o.ID}
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, query)
@@ -1147,7 +1148,7 @@ func (o *TeamPlayer) RemoveTeamPlayerTradePlayers(exec boil.Executor, related ..
 
 // TeamPlayers retrieves all the records using an executor.
 func TeamPlayers(mods ...qm.QueryMod) teamPlayerQuery {
-	mods = append(mods, qm.From("`TeamPlayers`"))
+	mods = append(mods, qm.From("\"TeamPlayers\""))
 	return teamPlayerQuery{NewQuery(mods...)}
 }
 
@@ -1161,7 +1162,7 @@ func FindTeamPlayer(exec boil.Executor, iD int, selectCols ...string) (*TeamPlay
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `TeamPlayers` where `id`=?", sel,
+		"select %s from \"TeamPlayers\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -1219,15 +1220,15 @@ func (o *TeamPlayer) Insert(exec boil.Executor, columns boil.Columns) error {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `TeamPlayers` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"TeamPlayers\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `TeamPlayers` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"TeamPlayers\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `TeamPlayers` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, teamPlayerPrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -1240,43 +1241,17 @@ func (o *TeamPlayer) Insert(exec boil.Executor, columns boil.Columns) error {
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into TeamPlayers")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == teamPlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TeamPlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		teamPlayerInsertCacheMut.Lock()
 		teamPlayerInsertCache[key] = cache
@@ -1312,9 +1287,9 @@ func (o *TeamPlayer) Update(exec boil.Executor, columns boil.Columns) (int64, er
 			return 0, errors.New("sqlboiler: unable to update TeamPlayers, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `TeamPlayers` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, teamPlayerPrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"TeamPlayers\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, teamPlayerPrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(teamPlayerType, teamPlayerMapping, append(wl, teamPlayerPrimaryKeyColumns...))
 		if err != nil {
@@ -1392,9 +1367,9 @@ func (o TeamPlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `TeamPlayers` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamPlayerPrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"TeamPlayers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, teamPlayerPrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1412,13 +1387,9 @@ func (o TeamPlayerSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	return rowsAff, nil
 }
 
-var mySQLTeamPlayerUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *TeamPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *TeamPlayer) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no TeamPlayers provided for upsert")
 	}
@@ -1433,14 +1404,19 @@ func (o *TeamPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boi
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(teamPlayerColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLTeamPlayerUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -1452,10 +1428,6 @@ func (o *TeamPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boi
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -1479,17 +1451,16 @@ func (o *TeamPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boi
 			teamPlayerPrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert TeamPlayers, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`TeamPlayers`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `TeamPlayers` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(teamPlayerPrimaryKeyColumns))
+			copy(conflict, teamPlayerPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"TeamPlayers\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(teamPlayerType, teamPlayerMapping, insert)
 		if err != nil {
@@ -1514,46 +1485,18 @@ func (o *TeamPlayer) Upsert(exec boil.Executor, updateColumns, insertColumns boi
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for TeamPlayers")
+		return errors.Wrap(err, "sqlboiler: unable to upsert TeamPlayers")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == teamPlayerMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(teamPlayerType, teamPlayerMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for TeamPlayers")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for TeamPlayers")
-	}
-
-CacheNoHooks:
 	if !cached {
 		teamPlayerUpsertCacheMut.Lock()
 		teamPlayerUpsertCache[key] = cache
@@ -1575,7 +1518,7 @@ func (o *TeamPlayer) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), teamPlayerPrimaryKeyMapping)
-	sql := "DELETE FROM `TeamPlayers` WHERE `id`=?"
+	sql := "DELETE FROM \"TeamPlayers\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1639,8 +1582,8 @@ func (o TeamPlayerSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `TeamPlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamPlayerPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"TeamPlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, teamPlayerPrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1693,8 +1636,8 @@ func (o *TeamPlayerSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `TeamPlayers`.* FROM `TeamPlayers` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, teamPlayerPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"TeamPlayers\".* FROM \"TeamPlayers\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, teamPlayerPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1711,7 +1654,7 @@ func (o *TeamPlayerSlice) ReloadAll(exec boil.Executor) error {
 // TeamPlayerExists checks if the TeamPlayer row exists.
 func TeamPlayerExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `TeamPlayers` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"TeamPlayers\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)

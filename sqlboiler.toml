@@ -3,7 +3,6 @@ wipe     = true
 pkgname  = "sqlboiler"
 no-context = true
 
-
 [mysql]
   dbname  = "fantasy"
   host    = "localhost"
@@ -11,3 +10,11 @@ no-context = true
   user    = "root"
   pass    = ""
   sslmode = "false"
+
+[psql]
+  dbname  = "fantasy"
+  host    = "localhost"
+  port    = 5432
+  user    = "root"
+  pass    = "secret"
+  sslmode = "disable"

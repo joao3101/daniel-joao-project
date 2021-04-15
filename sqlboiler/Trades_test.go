@@ -1193,7 +1193,7 @@ func testTradesSelect(t *testing.T) {
 }
 
 var (
-	tradeDBTypes = map[string]string{`ID`: `int`, `FromTeam`: `int`, `ToTeam`: `int`, `Status`: `int`, `CreatedAt`: `timestamp`, `DeletedAt`: `timestamp`}
+	tradeDBTypes = map[string]string{`ID`: `integer`, `FromTeam`: `integer`, `ToTeam`: `integer`, `Status`: `integer`, `CreatedAt`: `timestamp without time zone`, `DeletedAt`: `timestamp without time zone`}
 	_            = bytes.MinRead
 )
 
@@ -1312,21 +1312,18 @@ func testTradesUpsert(t *testing.T) {
 	if len(tradeAllColumns) == len(tradePrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
-	if len(mySQLTradeUniqueColumns) == 0 {
-		t.Skip("Skipping table with no unique columns to conflict on")
-	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
 	o := Trade{}
-	if err = randomize.Struct(seed, &o, tradeDBTypes, false); err != nil {
+	if err = randomize.Struct(seed, &o, tradeDBTypes, true); err != nil {
 		t.Errorf("Unable to randomize Trade struct: %s", err)
 	}
 
 	tx := MustTx(boil.Begin())
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Trade: %s", err)
 	}
 
@@ -1343,7 +1340,7 @@ func testTradesUpsert(t *testing.T) {
 		t.Errorf("Unable to randomize Trade struct: %s", err)
 	}
 
-	if err = o.Upsert(tx, boil.Infer(), boil.Infer()); err != nil {
+	if err = o.Upsert(tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
 		t.Errorf("Unable to upsert Trade: %s", err)
 	}
 

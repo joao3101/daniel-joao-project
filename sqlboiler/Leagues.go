@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
+	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -25,7 +26,7 @@ type League struct {
 	ID        int       `boil:"id" json:"id" toml:"id" yaml:"id"`
 	Name      string    `boil:"name" json:"name" toml:"name" yaml:"name"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	DeletedAt time.Time `boil:"deleted_at" json:"deleted_at" toml:"deleted_at" yaml:"deleted_at"`
+	DeletedAt null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *leagueR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L leagueL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -49,12 +50,12 @@ var LeagueWhere = struct {
 	ID        whereHelperint
 	Name      whereHelperstring
 	CreatedAt whereHelpertime_Time
-	DeletedAt whereHelpertime_Time
+	DeletedAt whereHelpernull_Time
 }{
-	ID:        whereHelperint{field: "`Leagues`.`id`"},
-	Name:      whereHelperstring{field: "`Leagues`.`name`"},
-	CreatedAt: whereHelpertime_Time{field: "`Leagues`.`created_at`"},
-	DeletedAt: whereHelpertime_Time{field: "`Leagues`.`deleted_at`"},
+	ID:        whereHelperint{field: "\"Leagues\".\"id\""},
+	Name:      whereHelperstring{field: "\"Leagues\".\"name\""},
+	CreatedAt: whereHelpertime_Time{field: "\"Leagues\".\"created_at\""},
+	DeletedAt: whereHelpernull_Time{field: "\"Leagues\".\"deleted_at\""},
 }
 
 // LeagueRels is where relationship names are stored.
@@ -79,8 +80,8 @@ type leagueL struct{}
 
 var (
 	leagueAllColumns            = []string{"id", "name", "created_at", "deleted_at"}
-	leagueColumnsWithoutDefault = []string{"name"}
-	leagueColumnsWithDefault    = []string{"id", "created_at", "deleted_at"}
+	leagueColumnsWithoutDefault = []string{"name", "created_at", "deleted_at"}
+	leagueColumnsWithDefault    = []string{"id"}
 	leaguePrimaryKeyColumns     = []string{"id"}
 )
 
@@ -331,14 +332,14 @@ func (o *League) LeagueTeams(mods ...qm.QueryMod) teamQuery {
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("`Teams`.`league_id`=?", o.ID),
+		qm.Where("\"Teams\".\"league_id\"=?", o.ID),
 	)
 
 	query := Teams(queryMods...)
-	queries.SetFrom(query.Query, "`Teams`")
+	queries.SetFrom(query.Query, "\"Teams\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"`Teams`.*"})
+		queries.SetSelect(query.Query, []string{"\"Teams\".*"})
 	}
 
 	return query
@@ -456,9 +457,9 @@ func (o *League) AddLeagueTeams(exec boil.Executor, insert bool, related ...*Tea
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE `Teams` SET %s WHERE %s",
-				strmangle.SetParamNames("`", "`", 0, []string{"league_id"}),
-				strmangle.WhereClause("`", "`", 0, teamPrimaryKeyColumns),
+				"UPDATE \"Teams\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"league_id"}),
+				strmangle.WhereClause("\"", "\"", 2, teamPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -496,7 +497,7 @@ func (o *League) AddLeagueTeams(exec boil.Executor, insert bool, related ...*Tea
 
 // Leagues retrieves all the records using an executor.
 func Leagues(mods ...qm.QueryMod) leagueQuery {
-	mods = append(mods, qm.From("`Leagues`"))
+	mods = append(mods, qm.From("\"Leagues\""))
 	return leagueQuery{NewQuery(mods...)}
 }
 
@@ -510,7 +511,7 @@ func FindLeague(exec boil.Executor, iD int, selectCols ...string) (*League, erro
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from `Leagues` where `id`=?", sel,
+		"select %s from \"Leagues\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -568,15 +569,15 @@ func (o *League) Insert(exec boil.Executor, columns boil.Columns) error {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO `Leagues` (`%s`) %%sVALUES (%s)%%s", strings.Join(wl, "`,`"), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"Leagues\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO `Leagues` () VALUES ()%s%s"
+			cache.query = "INSERT INTO \"Leagues\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
 
 		if len(cache.retMapping) != 0 {
-			cache.retQuery = fmt.Sprintf("SELECT `%s` FROM `Leagues` WHERE %s", strings.Join(returnColumns, "`,`"), strmangle.WhereClause("`", "`", 0, leaguePrimaryKeyColumns))
+			queryReturning = fmt.Sprintf(" RETURNING \"%s\"", strings.Join(returnColumns, "\",\""))
 		}
 
 		cache.query = fmt.Sprintf(cache.query, queryOutput, queryReturning)
@@ -589,43 +590,17 @@ func (o *League) Insert(exec boil.Executor, columns boil.Columns) error {
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
+
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 
 	if err != nil {
 		return errors.Wrap(err, "sqlboiler: unable to insert into Leagues")
 	}
 
-	var lastID int64
-	var identifierCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == leagueMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	identifierCols = []interface{}{
-		o.ID,
-	}
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, identifierCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, identifierCols...).Scan(queries.PtrsFromMapping(value, cache.retMapping)...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Leagues")
-	}
-
-CacheNoHooks:
 	if !cached {
 		leagueInsertCacheMut.Lock()
 		leagueInsertCache[key] = cache
@@ -661,9 +636,9 @@ func (o *League) Update(exec boil.Executor, columns boil.Columns) (int64, error)
 			return 0, errors.New("sqlboiler: unable to update Leagues, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE `Leagues` SET %s WHERE %s",
-			strmangle.SetParamNames("`", "`", 0, wl),
-			strmangle.WhereClause("`", "`", 0, leaguePrimaryKeyColumns),
+		cache.query = fmt.Sprintf("UPDATE \"Leagues\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, wl),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, leaguePrimaryKeyColumns),
 		)
 		cache.valueMapping, err = queries.BindMapping(leagueType, leagueMapping, append(wl, leaguePrimaryKeyColumns...))
 		if err != nil {
@@ -741,9 +716,9 @@ func (o LeagueSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE `Leagues` SET %s WHERE %s",
-		strmangle.SetParamNames("`", "`", 0, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, leaguePrimaryKeyColumns, len(o)))
+	sql := fmt.Sprintf("UPDATE \"Leagues\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, colNames),
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, leaguePrimaryKeyColumns, len(o)))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -761,13 +736,9 @@ func (o LeagueSlice) UpdateAll(exec boil.Executor, cols M) (int64, error) {
 	return rowsAff, nil
 }
 
-var mySQLLeagueUniqueColumns = []string{
-	"id",
-}
-
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *League) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Columns) error {
+func (o *League) Upsert(exec boil.Executor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
 		return errors.New("sqlboiler: no Leagues provided for upsert")
 	}
@@ -782,14 +753,19 @@ func (o *League) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 
 	nzDefaults := queries.NonZeroDefaultSet(leagueColumnsWithDefault, o)
-	nzUniques := queries.NonZeroDefaultSet(mySQLLeagueUniqueColumns, o)
-
-	if len(nzUniques) == 0 {
-		return errors.New("cannot upsert with a table that cannot conflict on a unique column")
-	}
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
 	buf.WriteString(strconv.Itoa(updateColumns.Kind))
 	for _, c := range updateColumns.Cols {
 		buf.WriteString(c)
@@ -801,10 +777,6 @@ func (o *League) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 	}
 	buf.WriteByte('.')
 	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzUniques {
 		buf.WriteString(c)
 	}
 	key := buf.String()
@@ -828,17 +800,16 @@ func (o *League) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 			leaguePrimaryKeyColumns,
 		)
 
-		if !updateColumns.IsNone() && len(update) == 0 {
+		if updateOnConflict && len(update) == 0 {
 			return errors.New("sqlboiler: unable to upsert Leagues, could not build update column list")
 		}
 
-		ret = strmangle.SetComplement(ret, nzUniques)
-		cache.query = buildUpsertQueryMySQL(dialect, "`Leagues`", update, insert)
-		cache.retQuery = fmt.Sprintf(
-			"SELECT %s FROM `Leagues` WHERE %s",
-			strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, ret), ","),
-			strmangle.WhereClause("`", "`", 0, nzUniques),
-		)
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(leaguePrimaryKeyColumns))
+			copy(conflict, leaguePrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"Leagues\"", updateOnConflict, ret, update, conflict, insert)
 
 		cache.valueMapping, err = queries.BindMapping(leagueType, leagueMapping, insert)
 		if err != nil {
@@ -863,46 +834,18 @@ func (o *League) Upsert(exec boil.Executor, updateColumns, insertColumns boil.Co
 		fmt.Fprintln(boil.DebugWriter, cache.query)
 		fmt.Fprintln(boil.DebugWriter, vals)
 	}
-	result, err := exec.Exec(cache.query, vals...)
-
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRow(cache.query, vals...).Scan(returns...)
+		if err == sql.ErrNoRows {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.Exec(cache.query, vals...)
+	}
 	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to upsert for Leagues")
+		return errors.Wrap(err, "sqlboiler: unable to upsert Leagues")
 	}
 
-	var lastID int64
-	var uniqueMap []uint64
-	var nzUniqueCols []interface{}
-
-	if len(cache.retMapping) == 0 {
-		goto CacheNoHooks
-	}
-
-	lastID, err = result.LastInsertId()
-	if err != nil {
-		return ErrSyncFail
-	}
-
-	o.ID = int(lastID)
-	if lastID != 0 && len(cache.retMapping) == 1 && cache.retMapping[0] == leagueMapping["id"] {
-		goto CacheNoHooks
-	}
-
-	uniqueMap, err = queries.BindMapping(leagueType, leagueMapping, nzUniques)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to retrieve unique values for Leagues")
-	}
-	nzUniqueCols = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), uniqueMap)
-
-	if boil.DebugMode {
-		fmt.Fprintln(boil.DebugWriter, cache.retQuery)
-		fmt.Fprintln(boil.DebugWriter, nzUniqueCols...)
-	}
-	err = exec.QueryRow(cache.retQuery, nzUniqueCols...).Scan(returns...)
-	if err != nil {
-		return errors.Wrap(err, "sqlboiler: unable to populate default values for Leagues")
-	}
-
-CacheNoHooks:
 	if !cached {
 		leagueUpsertCacheMut.Lock()
 		leagueUpsertCache[key] = cache
@@ -924,7 +867,7 @@ func (o *League) Delete(exec boil.Executor) (int64, error) {
 	}
 
 	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), leaguePrimaryKeyMapping)
-	sql := "DELETE FROM `Leagues` WHERE `id`=?"
+	sql := "DELETE FROM \"Leagues\" WHERE \"id\"=$1"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -988,8 +931,8 @@ func (o LeagueSlice) DeleteAll(exec boil.Executor) (int64, error) {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM `Leagues` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, leaguePrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"Leagues\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, leaguePrimaryKeyColumns, len(o))
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
@@ -1042,8 +985,8 @@ func (o *LeagueSlice) ReloadAll(exec boil.Executor) error {
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT `Leagues`.* FROM `Leagues` WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 0, leaguePrimaryKeyColumns, len(*o))
+	sql := "SELECT \"Leagues\".* FROM \"Leagues\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, leaguePrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1060,7 +1003,7 @@ func (o *LeagueSlice) ReloadAll(exec boil.Executor) error {
 // LeagueExists checks if the League row exists.
 func LeagueExists(exec boil.Executor, iD int) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from `Leagues` where `id`=? limit 1)"
+	sql := "select exists(select 1 from \"Leagues\" where \"id\"=$1 limit 1)"
 
 	if boil.DebugMode {
 		fmt.Fprintln(boil.DebugWriter, sql)
