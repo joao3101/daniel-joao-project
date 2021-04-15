@@ -33,8 +33,9 @@ func main() {
 	}
 
 	a := sqlboiler.Player{
-		Name: util.RandomString(8),
-		Age:  util.RandomInt(18, 33),
+		Name:     util.RandomString(8),
+		Age:      int(util.RandomInt(18, 33)),
+		Position: int(util.RandomInt(1, 11)),
 	}
 	model.InsertAtlhete(a)
 

@@ -1,19 +1,14 @@
 package models
 
 import (
-	athlete_repository "github.com/joao3101/daniel-joao-project/app/athletes/repository"
 	"github.com/joao3101/daniel-joao-project/sqlboiler"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
-func (model ModelImp) GetAtlhete(athlete_id int) (*athlete_repository.AthleteModelData, error) {
+func (model ModelImp) GetAtlhete(athlete_id int) (athlete sqlboiler.Player, err error) {
 	p, _ := sqlboiler.FindPlayer(model.DB, athlete_id)
-	a := &athlete_repository.AthleteModelData{
-		ID:   athlete_id,
-		Name: p.Name,
-	}
 
-	return a, nil
+	return *p, nil
 }
 
 func (model ModelImp) InsertAtlhete(athlete sqlboiler.Player) (*sqlboiler.Player, error) {
