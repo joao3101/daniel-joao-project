@@ -5,10 +5,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func PostAthlete(config *config.Config) echo.HandlerFunc {
-	return func(c echo.Context) error {
+func (config config.Config) PostAthlete(c echo.Context) echo.Context {
 
-		//TODO fazer a lógica da parada aqui que chama o useCase
-		return nil
-	}
+	//TODO fazer a lógica da parada aqui que chama o useCase
+	return nil
+
 }

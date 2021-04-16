@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/joao3101/daniel-joao-project/api"
 	"github.com/joao3101/daniel-joao-project/api/config"
+	domainAthlete "github.com/joao3101/daniel-joao-project/app/domain"
 	"github.com/joao3101/daniel-joao-project/models"
-	"github.com/joao3101/daniel-joao-project/sqlboiler"
 	"github.com/joao3101/daniel-joao-project/util"
 	_ "github.com/lib/pq"
 )
@@ -32,12 +33,14 @@ func main() {
 		logger.Panic(err.Error())
 	}
 
-	a := sqlboiler.Player{
+	a := domainAthlete.Athlete{
 		Name:     util.RandomString(8),
 		Age:      int(util.RandomInt(18, 33)),
 		Position: int(util.RandomInt(1, 11)),
 	}
 	model.InsertAtlhete(a)
+
+	fmt.Println(model.GetAtlhete(1))
 
 	err = server.Start(config.ServerAddress)
 	if err != nil {

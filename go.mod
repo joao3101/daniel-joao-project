@@ -10,6 +10,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/validator/v10 v10.5.0 // indirect
 	github.com/google/uuid v1.2.0
+	github.com/jinzhu/copier v0.2.9 // indirect
 	github.com/kat-co/vala v0.0.0-20170210184112-42e1d8b61f12
 	github.com/kr/text v0.2.0 // indirect
 	github.com/labstack/echo/v4 v4.2.2
