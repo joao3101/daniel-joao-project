@@ -7,11 +7,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/joao3101/daniel-joao-project/api/config"
 	"github.com/joao3101/daniel-joao-project/api/routes/athletes"
+	config "github.com/joao3101/daniel-joao-project/util"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"golang.org/x/time/rate"
 )
 
 func Bootstrap(config *config.Config) {
@@ -23,7 +22,7 @@ func Bootstrap(config *config.Config) {
 	e.HideBanner = true
 
 	// Limiting the number of requests per second
-	e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(config.RequestLimitPerSecond))))
+	//e.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(rate.Limit(config.RequestLimitPerSecond))))
 
 	e.Use(middleware.BodyLimit("50M"))
 
@@ -53,7 +52,7 @@ func Bootstrap(config *config.Config) {
 	// Start server
 	go func() {
 		fmt.Println("start")
-		err := e.Start(config.Address)
+		err := e.Start(config.ServerAddress)
 		fmt.Println(err)
 	}()
 

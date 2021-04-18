@@ -21,7 +21,6 @@ func (model ModelImp) InsertAtlhete(athlete atlheteDomain.Athlete) (*atlheteDoma
 	copier.Copy(&athleteBank, athlete)
 
 	err := athleteBank.Insert(model.DB, boil.Infer())
-
 	if err != nil {
 		panic(err)
 	}

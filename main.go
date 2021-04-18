@@ -1,13 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
-	"github.com/joao3101/daniel-joao-project/api"
-	"github.com/joao3101/daniel-joao-project/api/config"
-	domainAthlete "github.com/joao3101/daniel-joao-project/app/domain"
-	"github.com/joao3101/daniel-joao-project/models"
+	"github.com/joao3101/daniel-joao-project/api/routes"
 	"github.com/joao3101/daniel-joao-project/util"
 	_ "github.com/lib/pq"
 )
@@ -16,14 +12,14 @@ func init() {
 }
 
 func main() {
-	logger := config.GetLogger()
+	//logger := config.GetLogger()
 
 	config, err := util.LoadConfig(".")
 	if err != nil {
 		log.Fatal("cannot load config:", err)
 	}
 
-	server, err := api.NewServer(config)
+	/*server, err := api.NewServer(config)
 	if err != nil {
 		log.Fatal("cannot create server:", err)
 	}
@@ -40,12 +36,14 @@ func main() {
 	}
 	model.InsertAtlhete(a)
 
-	fmt.Println(model.GetAtlhete(1))
+	fmt.Println(model.GetAtlhete(1))*/
 
-	err = server.Start(config.ServerAddress)
+	routes.Bootstrap(&config)
+
+	/*err = server.Start(config.ServerAddress)
 	if err != nil {
 		log.Fatal("cannot start server:", err)
-	}
+	}*/
 
 	//e := echo.New()
 	//log.Fatal(e.Start(viper.GetString("server.address")))
